@@ -8,7 +8,7 @@ export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-const DATE_FMT = new Intl.DateTimeFormat("es", {
+const DATE_FMT = new Intl.DateTimeFormat("en", {
   day: "2-digit",
   month: "short",
 });

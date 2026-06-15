@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { Plus, ArrowLeft } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { useConfirm } from "../context/ConfirmProvider";
 import {
   COLOR_STYLES,
-  PRIORITY_META,
   STATUS_META,
   STATUSES,
   type Board,
@@ -26,22 +26,25 @@ const nextStatus: Record<Status, Status> = {
 };
 
 export default function BoardDetail({ board, onBack }: BoardDetailProps) {
-  const { addTask, updateTask, deleteTask, setTaskStatus } = useApp();
+  const { addTask, updateTask, deleteTask, setTaskStatus, moveTask } = useApp();
+  const confirm = useConfirm();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState<Status | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<Status | null>(null);
+  const [dropIndex, setDropIndex] = useState<number>(0);
 
   const c = COLOR_STYLES[board.color];
 
-  const columns = useMemo(() => {
-    const sortFn = (a: Task, b: Task) =>
-      PRIORITY_META[a.priority].order - PRIORITY_META[b.priority].order;
-    return STATUSES.map((status) => ({
-      status,
-      tasks: board.tasks.filter((t) => t.status === status).sort(sortFn),
-    }));
-  }, [board.tasks]);
+  // Orden manual: respetamos el orden del array (sin re-ordenar por prioridad).
+  const columns = useMemo(
+    () =>
+      STATUSES.map((status) => ({
+        status,
+        tasks: board.tasks.filter((t) => t.status === status),
+      })),
+    [board.tasks]
+  );
 
   const done = board.tasks.filter((t) => t.status === "done").length;
   const total = board.tasks.length;
@@ -53,31 +56,48 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
     setEditing(null);
   };
 
-  const handleDrop = (status: Status) => {
-    if (draggingId) {
-      const task = board.tasks.find((t) => t.id === draggingId);
-      if (task && task.status !== status) setTaskStatus(board.id, draggingId, status);
-    }
+  const resetDrag = () => {
     setDraggingId(null);
-    setDragOver(null);
+    setDragOverCol(null);
+  };
+
+  const handleDrop = (status: Status, colTasks: Task[]) => {
+    if (draggingId) {
+      const raw = dragOverCol === status ? dropIndex : colTasks.length;
+      // Si la tarea ya está en esta columna, su posición desplaza el índice destino.
+      const fromPos = colTasks.findIndex((t) => t.id === draggingId);
+      const targetIndex = fromPos !== -1 && raw > fromPos ? raw - 1 : raw;
+      moveTask(board.id, draggingId, status, targetIndex);
+    }
+    resetDrag();
+  };
+
+  const askDelete = async (task: Task) => {
+    const ok = await confirm({
+      title: "Delete task?",
+      message: `"${task.title}" will be permanently removed.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (ok) deleteTask(board.id, task.id);
   };
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <button
         onClick={onBack}
-        className="mb-4 flex items-center gap-1.5 text-sm font-medium text-slate-400 transition hover:text-slate-200"
+        className="mb-4 flex items-center gap-1.5 text-sm font-medium text-slate-300 transition hover:text-slate-100"
       >
-        <ArrowLeft size={16} /> Volver a las cards
+        <ArrowLeft size={16} /> Back to boards
       </button>
 
       <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <span className={cn("h-8 w-2 rounded-full", c.bar)} />
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-slate-100">{board.title}</h1>
-            <p className="text-sm text-slate-400">
-              {total} {total === 1 ? "tarea" : "tareas"} · {done} completadas
+            <h1 className="text-xl font-bold text-slate-50">{board.title}</h1>
+            <p className="text-sm text-slate-300">
+              {total} {total === 1 ? "task" : "tasks"} · {done} completed
             </p>
           </div>
           <button
@@ -85,27 +105,27 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
               setEditing(null);
               setFormOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 active:scale-95"
           >
-            <Plus size={16} /> Tarea
+            <Plus size={16} /> Task
           </button>
         </div>
 
         <div className="mt-4">
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div
-              className={cn("h-full rounded-full transition-all", c.bar)}
+              className={cn("h-full rounded-full transition-all duration-500", c.bar)}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-1 text-right text-xs font-medium text-slate-500">
-            {pct}% completado
+          <p className="mt-1 text-right text-xs font-medium text-slate-400">
+            {pct}% complete
           </p>
         </div>
       </div>
 
-      <p className="mb-3 text-xs text-slate-500">
-        💡 Arrastra las tareas entre columnas para cambiar su estado.
+      <p className="mb-3 text-xs text-slate-400">
+        💡 Drag tasks between columns to change their status, or reorder them within a column.
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -114,19 +134,19 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
             key={status}
             onDragOver={(e) => {
               e.preventDefault();
-              setDragOver(status);
+              setDragOverCol(status);
+              setDropIndex(tasks.length); // sobre área vacía → al final
             }}
             onDragLeave={(e) => {
-              // solo limpiar si se sale del contenedor, no de un hijo
               if (!e.currentTarget.contains(e.relatedTarget as Node))
-                setDragOver(null);
+                setDragOverCol((s) => (s === status ? null : s));
             }}
-            onDrop={() => handleDrop(status)}
+            onDrop={() => handleDrop(status, tasks)}
             className={cn(
-              "flex flex-col rounded-2xl border bg-slate-900/50 p-3 transition",
-              dragOver === status
-                ? "border-indigo-500 bg-indigo-500/5"
-                : "border-slate-800"
+              "flex flex-col rounded-2xl border p-3 transition-colors duration-200",
+              dragOverCol === status
+                ? "border-indigo-500/70 bg-indigo-500/5"
+                : "border-slate-800 bg-slate-900/40"
             )}
           >
             <div className="mb-3 flex items-center justify-between px-1">
@@ -135,43 +155,58 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
                   className="h-2.5 w-2.5 rounded-full"
                   style={{ backgroundColor: STATUS_META[status].hex }}
                 />
-                <h3 className="text-sm font-semibold text-slate-200">
+                <h3 className="text-sm font-semibold text-slate-100">
                   {STATUS_META[status].label}
                 </h3>
               </div>
-              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">
+              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300">
                 {tasks.length}
               </span>
             </div>
 
             <div className="flex flex-1 flex-col gap-2">
               {tasks.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">
-                  Sin tareas
+                <div
+                  className={cn(
+                    "flex flex-1 items-center justify-center rounded-xl border border-dashed py-8 text-center text-xs transition-colors",
+                    dragOverCol === status
+                      ? "border-indigo-500/50 text-indigo-300"
+                      : "border-slate-800 text-slate-400"
+                  )}
+                >
+                  {dragOverCol === status ? "Drop here" : "No tasks"}
                 </div>
               ) : (
-                tasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    dragging={draggingId === task.id}
-                    onDragStart={() => setDraggingId(task.id)}
-                    onDragEnd={() => {
-                      setDraggingId(null);
-                      setDragOver(null);
-                    }}
-                    onCycleStatus={() =>
-                      setTaskStatus(board.id, task.id, nextStatus[task.status])
-                    }
-                    onEdit={() => {
-                      setEditing(task);
-                      setFormOpen(true);
-                    }}
-                    onDelete={() => {
-                      if (confirm(`¿Eliminar "${task.title}"?`))
-                        deleteTask(board.id, task.id);
-                    }}
-                  />
+                tasks.map((task, i) => (
+                  <div key={task.id}>
+                    {dragOverCol === status && dropIndex === i && (
+                      <div className="mb-2 h-0.5 rounded-full bg-indigo-500" />
+                    )}
+                    <TaskItem
+                      task={task}
+                      index={i}
+                      dragging={draggingId === task.id}
+                      onDragStart={() => setDraggingId(task.id)}
+                      onDragEnd={resetDrag}
+                      onDragOverItem={(idx, after) => {
+                        setDragOverCol(status);
+                        setDropIndex(after ? idx + 1 : idx);
+                      }}
+                      onCycleStatus={() =>
+                        setTaskStatus(board.id, task.id, nextStatus[task.status])
+                      }
+                      onEdit={() => {
+                        setEditing(task);
+                        setFormOpen(true);
+                      }}
+                      onDelete={() => askDelete(task)}
+                    />
+                    {dragOverCol === status &&
+                      dropIndex === i + 1 &&
+                      i === tasks.length - 1 && (
+                        <div className="mt-2 h-0.5 rounded-full bg-indigo-500" />
+                      )}
+                  </div>
                 ))
               )}
             </div>

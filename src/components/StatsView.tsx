@@ -4,59 +4,57 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   Pie,
   PieChart,
+  PolarAngleAxis,
+  RadialBar,
+  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   CheckCircle2,
   Clock,
   ListTodo,
+  Target,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import {
-  COLOR_STYLES,
-  PRIORITY_META,
-  STATUS_META,
-  type Priority,
-  type Status,
-} from "../types";
-import StatCard from "./StatCard";
+import { COLOR_STYLES } from "../types";
 
 const GRID = "#1e293b";
 const AXIS_TICK = { fontSize: 12, fill: "#94a3b8" };
 const tooltipStyle = {
   contentStyle: {
     borderRadius: 12,
-    border: "1px solid #1e293b",
+    border: "1px solid #334155",
     backgroundColor: "#0f172a",
     fontSize: 13,
     color: "#e2e8f0",
   },
-  labelStyle: { color: "#e2e8f0" },
+  labelStyle: { color: "#f1f5f9", fontWeight: 600 },
   itemStyle: { color: "#cbd5e1" },
 } as const;
 
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold text-slate-200">{title}</h3>
-      {children}
-    </div>
-  );
+const MONTH_FMT = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
+const MONTH_SHORT = new Intl.DateTimeFormat("en", { month: "short" });
+
+function sameMonth(iso: string, d: Date): boolean {
+  const x = new Date(iso);
+  return x.getFullYear() === d.getFullYear() && x.getMonth() === d.getMonth();
+}
+
+function pctDelta(curr: number, prev: number): number {
+  if (prev === 0) return curr > 0 ? 100 : 0;
+  return Math.round(((curr - prev) / prev) * 100);
 }
 
 export default function StatsView() {
@@ -67,159 +65,286 @@ export default function StatsView() {
     const total = tasks.length;
     const done = tasks.filter((t) => t.status === "done").length;
     const inProgress = tasks.filter((t) => t.status === "in_progress").length;
-    const todo = tasks.filter((t) => t.status === "todo").length;
+    const pending = tasks.filter((t) => t.status !== "done").length;
     const rate = total ? Math.round((done / total) * 100) : 0;
 
-    // Tareas por board (apiladas por estado)
-    const perBoard = boards.map((b) => ({
-      name: b.title,
-      hechas: b.tasks.filter((t) => t.status === "done").length,
-      progreso: b.tasks.filter((t) => t.status === "in_progress").length,
-      pendientes: b.tasks.filter((t) => t.status === "todo").length,
-      color: COLOR_STYLES[b.color].hex,
-    }));
+    const now = new Date();
 
-    // Distribución por estado
-    const byStatus = (["todo", "in_progress", "done"] as Status[]).map((s) => ({
-      name: STATUS_META[s].label,
-      value: tasks.filter((t) => t.status === s).length,
-      hex: STATUS_META[s].hex,
-    }));
-
-    // Distribución por prioridad
-    const byPriority = (["high", "medium", "low"] as Priority[]).map((p) => ({
-      name: PRIORITY_META[p].label,
-      value: tasks.filter((t) => t.priority === p).length,
-      hex: PRIORITY_META[p].hex,
-    }));
-
-    // Completadas en los últimos 14 días
-    const days: { name: string; completadas: number }[] = [];
-    const fmt = new Intl.DateTimeFormat("es", { day: "2-digit", month: "2-digit" });
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - i);
-      const next = new Date(d);
-      next.setDate(d.getDate() + 1);
-      const count = tasks.filter((t) => {
-        if (!t.completedAt) return false;
-        const c = new Date(t.completedAt);
-        return c >= d && c < next;
-      }).length;
-      days.push({ name: fmt.format(d), completadas: count });
+    // Últimos 5 meses: creadas vs completadas
+    const monthly: { name: string; created: number; completed: number }[] = [];
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthly.push({
+        name: MONTH_SHORT.format(d),
+        created: tasks.filter((t) => sameMonth(t.createdAt, d)).length,
+        completed: tasks.filter((t) => t.completedAt && sameMonth(t.completedAt, d)).length,
+      });
     }
+    const cur = monthly[monthly.length - 1];
+    const prev = monthly[monthly.length - 2] ?? { created: 0, completed: 0 };
 
-    return { total, done, inProgress, todo, rate, perBoard, byStatus, byPriority, days };
+    // Por board (donut)
+    const byBoard = boards
+      .map((b) => ({
+        name: b.title,
+        value: b.tasks.length,
+        hex: COLOR_STYLES[b.color].hex,
+      }))
+      .filter((b) => b.value > 0);
+
+    // Done vs pending por board (barras agrupadas)
+    const compare = boards.map((b) => ({
+      name: b.title,
+      done: b.tasks.filter((t) => t.status === "done").length,
+      pending: b.tasks.filter((t) => t.status !== "done").length,
+    }));
+
+    return {
+      total,
+      done,
+      inProgress,
+      pending,
+      rate,
+      monthly,
+      byBoard,
+      compare,
+      createdDelta: pctDelta(cur.created, prev.created),
+      completedDelta: pctDelta(cur.completed, prev.completed),
+      monthLabel: MONTH_FMT.format(now),
+    };
   }, [boards]);
 
   if (stats.total === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-800 py-20 text-center">
-        <TrendingUp className="mx-auto mb-3 text-slate-700" size={40} />
-        <p className="font-medium text-slate-300">Sin datos todavía</p>
-        <p className="text-sm text-slate-500">
-          Añade tareas para ver tus estadísticas.
-        </p>
+      <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+        <TrendingUp className="mx-auto mb-3 text-slate-600" size={40} />
+        <p className="font-medium text-slate-200">No data yet</p>
+        <p className="text-sm text-slate-400">Add tasks to see your statistics.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-100">Estadísticas</h1>
-        <p className="text-sm text-slate-400">Tu progreso de un vistazo</p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-50">
+          Here's your overview
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">{stats.monthLabel}</p>
       </div>
 
-      {/* Resumen */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Tareas totales" value={stats.total} icon={ListTodo} accent="bg-indigo-500" />
-        <StatCard label="Completadas" value={stats.done} icon={CheckCircle2} accent="bg-emerald-500" />
-        <StatCard label="En progreso" value={stats.inProgress} icon={Clock} accent="bg-sky-500" />
-        <StatCard
-          label="Tasa de finalización"
+      {/* KPIs */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Kpi
+          label="Total tasks"
+          value={stats.total}
+          icon={ListTodo}
+          delta={stats.createdDelta}
+          deltaSuffix="created vs last month"
+          delay={0}
+        />
+        <Kpi
+          label="Completed"
+          value={stats.done}
+          icon={CheckCircle2}
+          delta={stats.completedDelta}
+          deltaSuffix="vs last month"
+          delay={60}
+        />
+        <Kpi
+          label="In progress"
+          value={stats.inProgress}
+          icon={Clock}
+          sub="currently active"
+          delay={120}
+        />
+        <Kpi
+          label="Completion rate"
           value={`${stats.rate}%`}
-          icon={TrendingUp}
-          accent="bg-violet-500"
-          sub={`${stats.todo} por hacer`}
+          icon={Target}
+          sub={`${stats.pending} tasks remaining`}
+          delay={180}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Tareas por card">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={stats.perBoard} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+      {/* Combo + gauge */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card
+          className="lg:col-span-2"
+          title="Created vs Completed by month"
+          subtitle="Recent months"
+        >
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={stats.monthly} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
               <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
+              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.06)" }} />
               <Legend wrapperStyle={{ fontSize: 12, color: "#94a3b8" }} />
-              <Bar dataKey="hechas" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="progreso" stackId="a" fill="#38bdf8" />
-              <Bar dataKey="pendientes" stackId="a" fill="#475569" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Completadas (últimos 14 días)">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={stats.days} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} interval={1} />
-              <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <Tooltip {...tooltipStyle} cursor={{ stroke: "#334155" }} />
+              <Bar dataKey="created" name="Created" fill="#fb7185" radius={[6, 6, 0, 0]} barSize={28} />
               <Line
                 type="monotone"
-                dataKey="completadas"
-                stroke="#6366f1"
-                strokeWidth={2.5}
-                dot={{ r: 3, fill: "#6366f1" }}
-                activeDot={{ r: 5 }}
+                dataKey="completed"
+                name="Completed"
+                stroke="#34d399"
+                strokeWidth={3}
+                dot={{ r: 4, fill: "#34d399", strokeWidth: 0 }}
+                activeDot={{ r: 6 }}
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </Card>
 
-        <ChartCard title="Distribución por estado">
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={stats.byStatus}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={3}
+        <Card title="Completion rate" subtitle="% of tasks done">
+          <div className="relative">
+            <ResponsiveContainer width="100%" height={300}>
+              <RadialBarChart
+                innerRadius="68%"
+                outerRadius="100%"
+                data={[{ value: stats.rate, fill: "#34d399" }]}
+                startAngle={220}
+                endAngle={-40}
               >
-                {stats.byStatus.map((e) => (
-                  <Cell key={e.name} fill={e.hex} />
-                ))}
-              </Pie>
-              <Tooltip {...tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12, color: "#94a3b8" }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
+                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                <RadialBar
+                  background={{ fill: "#1e293b" }}
+                  dataKey="value"
+                  cornerRadius={30}
+                />
+              </RadialBarChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-bold text-emerald-400">{stats.rate}%</span>
+              <span className="mt-1 text-xs font-medium uppercase tracking-widest text-slate-400">
+                Completed
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
 
-        <ChartCard title="Distribución por prioridad">
+      {/* Donut + grouped comparison */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card title="Tasks by board" subtitle={stats.monthLabel}>
+          <div className="flex flex-col items-center">
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={stats.byBoard}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={62}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  stroke="none"
+                >
+                  {stats.byBoard.map((e) => (
+                    <Cell key={e.name} fill={e.hex} />
+                  ))}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2">
+              {stats.byBoard.map((e) => (
+                <span key={e.name} className="flex items-center gap-1.5 text-xs text-slate-300">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.hex }} />
+                  {e.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Done vs pending by board" subtitle="Current status">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={stats.byPriority} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
-              <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <YAxis type="category" dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} width={56} />
-              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
-                {stats.byPriority.map((e) => (
-                  <Cell key={e.name} fill={e.hex} />
-                ))}
-              </Bar>
+            <BarChart data={stats.compare} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+              <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.06)" }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: "#94a3b8" }} />
+              <Bar dataKey="done" name="Done" fill="#818cf8" radius={[6, 6, 0, 0]} barSize={20} />
+              <Bar dataKey="pending" name="Pending" fill="#475569" radius={[6, 6, 0, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+function Card({
+  title,
+  subtitle,
+  className,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={
+        "animate-fade-in-up rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm " +
+        (className ?? "")
+      }
+    >
+      <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
+      {subtitle && <p className="mb-4 text-xs text-slate-400">{subtitle}</p>}
+      {children}
+    </div>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  icon: Icon,
+  delta,
+  deltaSuffix,
+  sub,
+  delay,
+}: {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  delta?: number;
+  deltaSuffix?: string;
+  sub?: string;
+  delay: number;
+}) {
+  const positive = (delta ?? 0) >= 0;
+  return (
+    <div
+      className="animate-fade-in-up rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm transition-colors hover:border-slate-700"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-start justify-between">
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          {label}
+        </span>
+        <Icon size={18} className="text-slate-500" />
+      </div>
+      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-50">{value}</p>
+      {delta !== undefined ? (
+        <p
+          className={
+            "mt-1.5 flex items-center gap-1 text-xs font-medium " +
+            (positive ? "text-emerald-400" : "text-rose-400")
+          }
+        >
+          {positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {positive ? "+" : ""}
+          {delta}% {deltaSuffix}
+        </p>
+      ) : (
+        sub && <p className="mt-1.5 text-xs text-slate-400">{sub}</p>
+      )}
     </div>
   );
 }

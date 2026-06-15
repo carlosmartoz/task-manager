@@ -60,18 +60,18 @@ export const PRIORITY_META: Record<
   Priority,
   { label: string; chip: string; hex: string; order: number }
 > = {
-  high: { label: "Alta", chip: "bg-rose-500/15 text-rose-300", hex: "#fb7185", order: 0 },
-  medium: { label: "Media", chip: "bg-amber-500/15 text-amber-300", hex: "#fbbf24", order: 1 },
-  low: { label: "Baja", chip: "bg-slate-700 text-slate-300", hex: "#94a3b8", order: 2 },
+  high: { label: "High", chip: "bg-rose-500/15 text-rose-300", hex: "#fb7185", order: 0 },
+  medium: { label: "Medium", chip: "bg-amber-500/15 text-amber-300", hex: "#fbbf24", order: 1 },
+  low: { label: "Low", chip: "bg-slate-700 text-slate-200", hex: "#94a3b8", order: 2 },
 };
 
 export const STATUS_META: Record<
   Status,
   { label: string; chip: string; hex: string }
 > = {
-  todo: { label: "Por hacer", chip: "bg-slate-700 text-slate-300", hex: "#94a3b8" },
-  in_progress: { label: "En progreso", chip: "bg-sky-500/15 text-sky-300", hex: "#38bdf8" },
-  done: { label: "Hecho", chip: "bg-emerald-500/15 text-emerald-300", hex: "#34d399" },
+  todo: { label: "To do", chip: "bg-slate-700 text-slate-200", hex: "#94a3b8" },
+  in_progress: { label: "In progress", chip: "bg-sky-500/15 text-sky-300", hex: "#38bdf8" },
+  done: { label: "Done", chip: "bg-emerald-500/15 text-emerald-300", hex: "#34d399" },
 };
 
 export const STATUSES: Status[] = ["todo", "in_progress", "done"];
@@ -93,9 +93,9 @@ export const FREQUENCY_META: Record<
   Frequency,
   { label: string; labelPlural: string; icon: string }
 > = {
-  daily: { label: "Diaria", labelPlural: "Diarias", icon: "sun" },
-  weekly: { label: "Semanal", labelPlural: "Semanales", icon: "calendar-days" },
-  monthly: { label: "Mensual", labelPlural: "Mensuales", icon: "calendar-range" },
+  daily: { label: "Daily", labelPlural: "Daily", icon: "sun" },
+  weekly: { label: "Weekly", labelPlural: "Weekly", icon: "calendar-days" },
+  monthly: { label: "Monthly", labelPlural: "Monthly", icon: "calendar-range" },
 };
 
 export const FREQUENCIES: Frequency[] = ["daily", "weekly", "monthly"];

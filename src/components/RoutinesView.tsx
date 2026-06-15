@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { useConfirm } from "../context/ConfirmProvider";
 import {
   COLOR_STYLES,
   FREQUENCIES,
@@ -31,18 +32,29 @@ const FREQ_ICON: Record<Frequency, LucideIcon> = {
 
 export default function RoutinesView() {
   const { routines, addRoutine, updateRoutine, deleteRoutine, toggleRoutine } = useApp();
+  const confirm = useConfirm();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Routine | null>(null);
 
   const doneCount = routines.filter((r) => isDoneThisPeriod(r)).length;
 
+  const askDelete = async (routine: Routine) => {
+    const ok = await confirm({
+      title: "Delete routine?",
+      message: `"${routine.title}" will be permanently removed.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (ok) deleteRoutine(routine.id);
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Rutinas</h1>
-          <p className="text-sm text-slate-400">
-            Tareas que se repiten cada día, semana o mes
+          <h1 className="text-2xl font-bold text-slate-50">Routines</h1>
+          <p className="text-sm text-slate-300">
+            Tasks that repeat every day, week or month
           </p>
         </div>
         <button
@@ -50,33 +62,33 @@ export default function RoutinesView() {
             setEditing(null);
             setFormOpen(true);
           }}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 active:scale-95"
         >
-          <Plus size={18} /> Nueva rutina
+          <Plus size={18} /> New routine
         </button>
       </div>
 
       {routines.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-800 py-20 text-center">
-          <Repeat className="mx-auto mb-3 text-slate-700" size={40} />
-          <p className="font-medium text-slate-300">Aún no tienes rutinas</p>
-          <p className="mb-4 text-sm text-slate-500">
-            Crea hábitos diarios, semanales o mensuales y mantén tu racha.
+        <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+          <Repeat className="mx-auto mb-3 text-slate-600" size={40} />
+          <p className="font-medium text-slate-200">You don't have any routines yet</p>
+          <p className="mb-4 text-sm text-slate-400">
+            Create daily, weekly or monthly habits and keep your streak going.
           </p>
           <button
             onClick={() => setFormOpen(true)}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 active:scale-95"
           >
-            Crear rutina
+            Create routine
           </button>
         </div>
       ) : (
         <>
-          <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-300">
-            Llevas{" "}
-            <span className="font-semibold text-emerald-400">{doneCount}</span> de{" "}
-            <span className="font-semibold text-slate-100">{routines.length}</span>{" "}
-            rutinas completadas en su periodo actual. ¡Sigue así! 🚀
+          <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200">
+            You've completed{" "}
+            <span className="font-semibold text-emerald-400">{doneCount}</span> of{" "}
+            <span className="font-semibold text-slate-50">{routines.length}</span>{" "}
+            routines for their current period. Keep it up! 🚀
           </div>
 
           <div className="space-y-6">
@@ -85,8 +97,8 @@ export default function RoutinesView() {
               if (list.length === 0) return null;
               const Icon = FREQ_ICON[freq];
               return (
-                <section key={freq}>
-                  <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                <section key={freq} className="animate-fade-in-up">
+                  <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                     <Icon size={16} /> {FREQUENCY_META[freq].labelPlural}
                   </h2>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -99,10 +111,7 @@ export default function RoutinesView() {
                           setEditing(routine);
                           setFormOpen(true);
                         }}
-                        onDelete={() => {
-                          if (confirm(`¿Eliminar la rutina "${routine.title}"?`))
-                            deleteRoutine(routine.id);
-                        }}
+                        onDelete={() => askDelete(routine)}
                       />
                     ))}
                   </div>
@@ -149,18 +158,18 @@ function RoutineRow({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 rounded-xl border bg-slate-900 p-3 transition",
+        "group flex items-center gap-3 rounded-xl border bg-slate-900 p-3 transition-all duration-200 hover:shadow-md hover:shadow-black/20",
         done ? "border-emerald-500/40" : "border-slate-800 hover:border-slate-700"
       )}
     >
       <button
         onClick={onToggle}
-        title={done ? "Marcar como pendiente" : "Marcar como hecha"}
+        title={done ? "Mark as pending" : "Mark as done"}
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-90",
           done
             ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-slate-600 text-transparent hover:border-emerald-500"
+            : "border-slate-500 text-transparent hover:border-emerald-500"
         )}
       >
         <Check size={15} strokeWidth={3} />
@@ -177,28 +186,31 @@ function RoutineRow({
         >
           {routine.title}
         </p>
-        <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500">
+        <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-400">
           {s > 0 && (
-            <span className="flex items-center gap-1 text-amber-400">
-              <Flame size={12} /> {s} {s === 1 ? "racha" : "de racha"}
+            <span
+              className="flex items-center gap-1 text-amber-300"
+              title={`${s} ${s === 1 ? "period" : "periods"} streak`}
+            >
+              <Flame size={12} /> {s} streak
             </span>
           )}
-          <span>{total} completadas</span>
+          <span>{total} completed</span>
         </div>
       </div>
 
-      <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
+      <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <button
           onClick={onEdit}
-          className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
-          aria-label="Editar"
+          className="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-slate-100"
+          aria-label="Edit"
         >
           <Pencil size={14} />
         </button>
         <button
           onClick={onDelete}
-          className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-400"
-          aria-label="Eliminar"
+          className="rounded-md p-1.5 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-300"
+          aria-label="Delete"
         >
           <Trash2 size={14} />
         </button>

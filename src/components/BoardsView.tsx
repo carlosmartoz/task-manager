@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, LayoutGrid } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { useConfirm } from "../context/ConfirmProvider";
 import type { Board, BoardColor } from "../types";
 import BoardCard from "./BoardCard";
 import BoardForm from "./BoardForm";
@@ -8,6 +9,7 @@ import BoardDetail from "./BoardDetail";
 
 export default function BoardsView() {
   const { boards, addBoard, updateBoard, deleteBoard } = useApp();
+  const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Board | null>(null);
@@ -24,60 +26,66 @@ export default function BoardsView() {
     setEditing(null);
   };
 
+  const askDelete = async (board: Board) => {
+    const ok = await confirm({
+      title: "Delete board?",
+      message: `"${board.title}" and all of its tasks will be permanently removed.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (ok) deleteBoard(board.id);
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Mis cards</h1>
-          <p className="text-sm text-slate-400">
-            Organiza tus tareas por tema
-          </p>
+          <h1 className="text-2xl font-bold text-slate-50">My boards</h1>
+          <p className="text-sm text-slate-300">Organize your tasks by topic</p>
         </div>
         <button
           onClick={() => {
             setEditing(null);
             setFormOpen(true);
           }}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 active:scale-95"
         >
-          <Plus size={18} /> Nueva card
+          <Plus size={18} /> New board
         </button>
       </div>
 
       {boards.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-800 py-20 text-center">
-          <LayoutGrid className="mx-auto mb-3 text-slate-700" size={40} />
-          <p className="font-medium text-slate-300">Aún no tienes cards</p>
-          <p className="mb-4 text-sm text-slate-500">
-            Crea tu primera card para empezar a organizar tareas.
+        <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+          <LayoutGrid className="mx-auto mb-3 text-slate-600" size={40} />
+          <p className="font-medium text-slate-200">You don't have any boards yet</p>
+          <p className="mb-4 text-sm text-slate-400">
+            Create your first board to start organizing tasks.
           </p>
           <button
             onClick={() => setFormOpen(true)}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 active:scale-95"
           >
-            Crear card
+            Create board
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((board) => (
-            <BoardCard
+          {boards.map((board, i) => (
+            <div
               key={board.id}
-              board={board}
-              onOpen={() => setOpenId(board.id)}
-              onEdit={() => {
-                setEditing(board);
-                setFormOpen(true);
-              }}
-              onDelete={() => {
-                if (
-                  confirm(
-                    `¿Eliminar la card "${board.title}" y todas sus tareas?`
-                  )
-                )
-                  deleteBoard(board.id);
-              }}
-            />
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              <BoardCard
+                board={board}
+                onOpen={() => setOpenId(board.id)}
+                onEdit={() => {
+                  setEditing(board);
+                  setFormOpen(true);
+                }}
+                onDelete={() => askDelete(board)}
+              />
+            </div>
           ))}
         </div>
       )}

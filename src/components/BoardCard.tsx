@@ -31,8 +31,8 @@ export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCard
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setMenu((v) => !v)}
-              className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-slate-800 hover:text-slate-200 group-hover:opacity-100"
-              aria-label="Opciones"
+              className="rounded-lg p-1 text-slate-300 opacity-0 transition hover:bg-slate-800 hover:text-slate-100 group-hover:opacity-100"
+              aria-label="Options"
             >
               <MoreVertical size={18} />
             </button>
@@ -42,24 +42,24 @@ export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCard
                   className="fixed inset-0 z-10"
                   onClick={() => setMenu(false)}
                 />
-                <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl">
+                <div className="absolute right-0 z-20 mt-1 w-36 origin-top-right animate-slide-down overflow-hidden rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl">
                   <button
                     onClick={() => {
                       setMenu(false);
                       onEdit();
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-700"
                   >
-                    <Pencil size={14} /> Editar
+                    <Pencil size={14} /> Edit
                   </button>
                   <button
                     onClick={() => {
                       setMenu(false);
                       onDelete();
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-400 transition hover:bg-rose-500/10"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-300 transition hover:bg-rose-500/10"
                   >
-                    <Trash2 size={14} /> Eliminar
+                    <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </>
@@ -67,24 +67,24 @@ export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCard
           </div>
         </div>
 
-        <div className="mt-3 flex gap-4 text-sm text-slate-400">
+        <div className="mt-3 flex gap-4 text-sm text-slate-300">
           <span className="flex items-center gap-1.5">
-            <ListTodo size={15} className={c.text} /> {pending} pendientes
+            <ListTodo size={15} className={c.text} /> {pending} pending
           </span>
           <span className="flex items-center gap-1.5">
-            <CheckCircle2 size={15} className="text-emerald-400" /> {done} hechas
+            <CheckCircle2 size={15} className="text-emerald-400" /> {done} done
           </span>
         </div>
 
         <div className="mt-4">
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div
-              className={cn("h-full rounded-full transition-all", c.bar)}
+              className={cn("h-full rounded-full transition-all duration-500", c.bar)}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-1.5 text-xs font-medium text-slate-500">
-            {total === 0 ? "Sin tareas" : `${pct}% completado`}
+          <p className="mt-1.5 text-xs font-medium text-slate-400">
+            {total === 0 ? "No tasks" : `${pct}% complete`}
           </p>
         </div>
       </div>

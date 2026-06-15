@@ -1,42 +1,43 @@
-# TaskBoards
+# Task Manager
 
-Gestor de tareas en **modo oscuro**, organizado por **cards** (temas), con tablero **Kanban** (arrastrar y soltar), **rutinas** recurrentes y sección de **estadísticas** con gráficos. Todo se guarda en tu navegador (`localStorage`), sin necesidad de servidor.
+A **dark-mode** task manager organized by **boards** (topics), with a **Kanban** workflow (drag & drop, reorder within columns), recurring **routines**, and a **statistics** dashboard with charts. Everything is stored locally in your browser (`localStorage`) — no server needed.
 
 ## Stack
 
 - ⚛️ React 18 + TypeScript
 - ⚡ Vite 6
-- 🎨 Tailwind CSS v4 (tema oscuro)
-- 📊 Recharts v3 (gráficos)
-- 🔣 lucide-react (íconos)
+- 🎨 Tailwind CSS v4 (dark theme)
+- 📊 Recharts v3 (charts, lazy-loaded)
+- 🔣 lucide-react (icons)
 
-## Funcionalidades
+## Features
 
-- **Cards por tema**: crea cards con color propio (Trabajo, Personal, Estudios…), cada una con sus tareas.
-- **Tablero Kanban con drag & drop**: arrastra las tareas entre las columnas *Por hacer / En progreso / Hecho* para cambiar su estado.
-- **Tareas**: título, descripción, prioridad (alta/media/baja), estado y fecha límite (con aviso si está vencida).
-- **Rutinas recurrentes**: hábitos diarios, semanales o mensuales con seguimiento de **racha** 🔥 y conteo de completados.
-- **Estadísticas**: tarjetas resumen + gráficos de tareas por card, completadas en el tiempo, y distribución por estado y prioridad.
-- **Persistencia local**: tus datos quedan guardados en el navegador.
+- **Boards by topic**: create boards with their own color (Work, Personal, Learning…), each holding its tasks.
+- **Kanban with drag & drop**: drag tasks between the *To do / In progress / Done* columns to change their status, and reorder them within a column.
+- **Tasks**: title, description, priority (high/medium/low), status and due date (with an overdue badge).
+- **Recurring routines**: daily, weekly or monthly habits with **streak** tracking 🔥 and completion counts.
+- **Statistics dashboard**: KPI cards with month-over-month deltas, a created-vs-completed combo chart, a completion-rate gauge, a tasks-by-board donut, and a done-vs-pending comparison.
+- **Polished UX**: dark theme, smooth animations/transitions, custom confirmation dialogs, AA-level text contrast, and `prefers-reduced-motion` support.
+- **Local persistence**: your data is saved in the browser.
 
-## Comandos
+## Commands
 
 ```bash
-npm install      # instalar dependencias
-npm run dev      # servidor de desarrollo (http://localhost:5173)
-npm run build    # build de producción
-npm run preview  # previsualizar el build
+npm install      # install dependencies
+npm run dev      # dev server (http://localhost:5173)
+npm run build    # production build
+npm run preview  # preview the build
 ```
 
-## Estructura
+## Structure
 
 ```
 src/
-├── components/      # UI (BoardsView, BoardDetail/Kanban, RoutinesView, StatsView, formularios…)
-├── context/         # AppContext: estado global (boards + rutinas) + persistencia
-├── lib/             # utilidades (ids, fechas) y lógica de rutinas (periodos/rachas)
-├── types.ts         # modelo de datos y metadatos de color/estado/prioridad/frecuencia
-└── App.tsx          # layout y navegación (Cards / Rutinas / Estadísticas)
+├── components/   UI (BoardsView, BoardDetail/Kanban, RoutinesView, StatsView, forms, Modal…)
+├── context/      AppContext (state + persistence) and ConfirmProvider (custom dialogs)
+├── lib/          utilities (ids, dates) and routine logic (periods/streaks)
+├── types.ts      data model and color/status/priority/frequency metadata
+└── App.tsx       layout and navigation (Boards / Routines / Statistics)
 ```
 
-> Al primer arranque se cargan datos de ejemplo. Puedes eliminarlos creando/borrando cards y tareas; el estado se reescribe automáticamente.
+> On a fresh start, sample data is loaded (storage key `taskmanager.v2`). Bumping that key resets to the seed data.

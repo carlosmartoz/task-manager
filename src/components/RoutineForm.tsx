@@ -31,24 +31,24 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={routine ? "Editar rutina" : "Nueva rutina"}>
+    <Modal open={open} onClose={onClose} title={routine ? "Edit routine" : "New routine"}>
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
-            ¿Qué quieres hacer de forma recurrente?
+          <label className="mb-1.5 block text-sm font-medium text-slate-200">
+            What do you want to do regularly?
           </label>
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej. Hacer ejercicio, Leer 20 min…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+            placeholder="e.g. Work out, Read 20 min…"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
-            Frecuencia
+          <label className="mb-1.5 block text-sm font-medium text-slate-200">
+            Frequency
           </label>
           <div className="flex gap-2">
             {FREQUENCIES.map((f) => (
@@ -60,7 +60,7 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
                   "flex-1 rounded-lg px-2 py-2 text-sm font-medium transition",
                   frequency === f
                     ? "bg-indigo-600 text-white"
-                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                 )}
               >
                 {FREQUENCY_META[f].label}
@@ -70,7 +70,7 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-300">
+          <label className="mb-1.5 block text-sm font-medium text-slate-200">
             Color
           </label>
           <div className="flex flex-wrap gap-2">
@@ -96,15 +96,15 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="submit"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 active:scale-95"
           >
-            {routine ? "Guardar" : "Crear rutina"}
+            {routine ? "Save" : "Create routine"}
           </button>
         </div>
       </form>

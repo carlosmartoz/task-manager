@@ -18,7 +18,7 @@ import { BOARD_COLORS } from "../types";
 import { uid } from "../lib/utils";
 import { dayKey, isDoneThisPeriod, periodKey } from "../lib/routines";
 
-const STORAGE_KEY = "taskboards.v1";
+const STORAGE_KEY = "taskmanager.v2";
 
 interface State {
   boards: Board[];
@@ -37,6 +37,13 @@ type Action =
   | { type: "UPDATE_TASK"; boardId: string; task: Task }
   | { type: "DELETE_TASK"; boardId: string; taskId: string }
   | { type: "SET_TASK_STATUS"; boardId: string; taskId: string; status: Status }
+  | {
+      type: "MOVE_TASK";
+      boardId: string;
+      taskId: string;
+      toStatus: Status;
+      targetIndex: number;
+    }
   | { type: "ADD_ROUTINE"; title: string; frequency: Frequency; color: BoardColor }
   | { type: "UPDATE_ROUTINE"; id: string; title: string; frequency: Frequency; color: BoardColor }
   | { type: "DELETE_ROUTINE"; id: string }
@@ -143,6 +150,42 @@ function reducer(state: State, action: Action): State {
         ),
       };
 
+    case "MOVE_TASK":
+      return {
+        ...state,
+        boards: state.boards.map((b) => {
+          if (b.id !== action.boardId) return b;
+          const moving = b.tasks.find((t) => t.id === action.taskId);
+          if (!moving) return b;
+          const updated: Task = {
+            ...moving,
+            status: action.toStatus,
+            completedAt:
+              action.toStatus === "done"
+                ? moving.completedAt ?? new Date().toISOString()
+                : undefined,
+          };
+          const others = b.tasks.filter((t) => t.id !== action.taskId);
+          // Insertar `updated` antes del elemento que ocupa `targetIndex`
+          // dentro del grupo del estado destino (mantiene el orden relativo).
+          const result: Task[] = [];
+          let seen = 0;
+          let inserted = false;
+          for (const t of others) {
+            if (t.status === action.toStatus) {
+              if (seen === action.targetIndex && !inserted) {
+                result.push(updated);
+                inserted = true;
+              }
+              seen++;
+            }
+            result.push(t);
+          }
+          if (!inserted) result.push(updated);
+          return { ...b, tasks: result };
+        }),
+      };
+
     case "ADD_ROUTINE":
       return {
         ...state,
@@ -230,6 +273,7 @@ interface AppContextValue extends State {
   updateTask: (boardId: string, task: Task) => void;
   deleteTask: (boardId: string, taskId: string) => void;
   setTaskStatus: (boardId: string, taskId: string, status: Status) => void;
+  moveTask: (boardId: string, taskId: string, toStatus: Status, targetIndex: number) => void;
   addRoutine: (title: string, frequency: Frequency, color: BoardColor) => void;
   updateRoutine: (id: string, title: string, frequency: Frequency, color: BoardColor) => void;
   deleteRoutine: (id: string) => void;
@@ -258,6 +302,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "DELETE_TASK", boardId, taskId }),
     setTaskStatus: (boardId, taskId, status) =>
       dispatch({ type: "SET_TASK_STATUS", boardId, taskId, status }),
+    moveTask: (boardId, taskId, toStatus, targetIndex) =>
+      dispatch({ type: "MOVE_TASK", boardId, taskId, toStatus, targetIndex }),
     addRoutine: (title, frequency, color) =>
       dispatch({ type: "ADD_ROUTINE", title, frequency, color }),
     updateRoutine: (id, title, frequency, color) =>
@@ -272,7 +318,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useApp(): AppContextValue {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp debe usarse dentro de <AppProvider>");
+  if (!ctx) throw new Error("useApp must be used within <AppProvider>");
   return ctx;
 }
 
@@ -303,36 +349,54 @@ function seed(): Board[] {
   return [
     {
       id: uid(),
-      title: "Trabajo",
+      title: "Work",
       color: BOARD_COLORS[0],
-      createdAt: daysAgo(10),
+      createdAt: daysAgo(120),
       tasks: [
-        mk("Preparar presentación del Q3", "high", "in_progress", { due: 2, desc: "Incluir métricas de ventas." }),
-        mk("Responder correos pendientes", "medium", "done", { created: 2, completed: 1 }),
-        mk("Actualizar documentación del proyecto", "low", "todo", { due: 7 }),
-        mk("Revisar pull requests del equipo", "medium", "done", { created: 4, completed: 2 }),
+        mk("Prepare Q3 presentation", "high", "in_progress", { due: 2, desc: "Include sales metrics." }),
+        mk("Reply to pending emails", "medium", "done", { created: 2, completed: 1 }),
+        mk("Update project documentation", "low", "todo", { due: 7 }),
+        mk("Review the team's pull requests", "medium", "done", { created: 4, completed: 2 }),
+        mk("Plan next sprint", "high", "done", { created: 35, completed: 33 }),
+        mk("Onboard new teammate", "medium", "done", { created: 70, completed: 66 }),
+        mk("Refactor billing module", "high", "done", { created: 100, completed: 95 }),
       ],
     },
     {
       id: uid(),
       title: "Personal",
       color: BOARD_COLORS[1],
-      createdAt: daysAgo(8),
+      createdAt: daysAgo(110),
       tasks: [
-        mk("Hacer la compra semanal", "medium", "todo", { due: 1 }),
-        mk("Reservar cita médica", "high", "todo", { due: 3 }),
-        mk("Pagar facturas", "high", "done", { created: 5, completed: 4 }),
+        mk("Do the weekly grocery shopping", "medium", "todo", { due: 1 }),
+        mk("Book a doctor's appointment", "high", "todo", { due: 3 }),
+        mk("Pay the bills", "high", "done", { created: 5, completed: 4 }),
+        mk("Renew gym membership", "low", "done", { created: 45, completed: 44 }),
+        mk("Plan summer trip", "medium", "done", { created: 80, completed: 72 }),
       ],
     },
     {
       id: uid(),
-      title: "Aprendizaje",
+      title: "Learning",
       color: BOARD_COLORS[4],
-      createdAt: daysAgo(6),
+      createdAt: daysAgo(95),
       tasks: [
-        mk("Terminar curso de React", "medium", "in_progress", { desc: "Módulo de hooks avanzados." }),
-        mk("Leer un capítulo de TypeScript", "low", "done", { created: 3, completed: 1 }),
-        mk("Practicar Tailwind con un proyecto", "low", "todo"),
+        mk("Finish the React course", "medium", "in_progress", { desc: "Advanced hooks module." }),
+        mk("Read a TypeScript chapter", "low", "done", { created: 3, completed: 1 }),
+        mk("Build a project with Tailwind", "low", "todo"),
+        mk("Complete algorithms practice", "medium", "done", { created: 50, completed: 47 }),
+        mk("Watch system design talk", "low", "done", { created: 88, completed: 85 }),
+      ],
+    },
+    {
+      id: uid(),
+      title: "Health",
+      color: BOARD_COLORS[2],
+      createdAt: daysAgo(60),
+      tasks: [
+        mk("Meal prep for the week", "medium", "in_progress"),
+        mk("Schedule dentist visit", "low", "todo", { due: 10 }),
+        mk("Morning run streak", "high", "done", { created: 20, completed: 18 }),
       ],
     },
   ];
@@ -344,7 +408,7 @@ function seedRoutines(): Routine[] {
   return [
     {
       id: uid(),
-      title: "Beber 2L de agua",
+      title: "Drink 2L of water",
       frequency: "daily",
       color: BOARD_COLORS[4],
       createdAt: new Date(now - 9 * 86400000).toISOString(),
@@ -352,7 +416,7 @@ function seedRoutines(): Routine[] {
     },
     {
       id: uid(),
-      title: "Hacer ejercicio",
+      title: "Work out",
       frequency: "daily",
       color: BOARD_COLORS[1],
       createdAt: new Date(now - 9 * 86400000).toISOString(),
@@ -360,7 +424,7 @@ function seedRoutines(): Routine[] {
     },
     {
       id: uid(),
-      title: "Planificar la semana",
+      title: "Plan the week",
       frequency: "weekly",
       color: BOARD_COLORS[0],
       createdAt: new Date(now - 20 * 86400000).toISOString(),
@@ -368,7 +432,7 @@ function seedRoutines(): Routine[] {
     },
     {
       id: uid(),
-      title: "Revisar presupuesto",
+      title: "Review budget",
       frequency: "monthly",
       color: BOARD_COLORS[3],
       createdAt: new Date(now - 40 * 86400000).toISOString(),
