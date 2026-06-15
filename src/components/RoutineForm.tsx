@@ -1,0 +1,113 @@
+import { useState } from "react";
+import Modal from "./Modal";
+import {
+  BOARD_COLORS,
+  COLOR_STYLES,
+  FREQUENCIES,
+  FREQUENCY_META,
+  type BoardColor,
+  type Frequency,
+  type Routine,
+} from "../types";
+import { cn } from "../lib/utils";
+
+interface RoutineFormProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (title: string, frequency: Frequency, color: BoardColor) => void;
+  routine?: Routine;
+}
+
+export default function RoutineForm({ open, onClose, onSubmit, routine }: RoutineFormProps) {
+  const [title, setTitle] = useState(routine?.title ?? "");
+  const [frequency, setFrequency] = useState<Frequency>(routine?.frequency ?? "daily");
+  const [color, setColor] = useState<BoardColor>(routine?.color ?? BOARD_COLORS[1]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onSubmit(title.trim(), frequency, color);
+    onClose();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={routine ? "Editar rutina" : "Nueva rutina"}>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-300">
+            ¿Qué quieres hacer de forma recurrente?
+          </label>
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej. Hacer ejercicio, Leer 20 min…"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-300">
+            Frecuencia
+          </label>
+          <div className="flex gap-2">
+            {FREQUENCIES.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFrequency(f)}
+                className={cn(
+                  "flex-1 rounded-lg px-2 py-2 text-sm font-medium transition",
+                  frequency === f
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                )}
+              >
+                {FREQUENCY_META[f].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-300">
+            Color
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {BOARD_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                className={cn(
+                  "h-8 w-8 rounded-full transition",
+                  COLOR_STYLES[c].bar,
+                  color === c
+                    ? "ring-2 ring-offset-2 ring-offset-slate-900 " + COLOR_STYLES[c].ring
+                    : "opacity-60 hover:opacity-100"
+                )}
+                aria-label={c}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+          >
+            {routine ? "Guardar" : "Crear rutina"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
