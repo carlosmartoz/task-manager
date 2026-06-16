@@ -1,23 +1,12 @@
 import { useMemo, useState } from "react";
 import { Plus, ArrowLeft } from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { useConfirm } from "../context/ConfirmProvider";
-import {
-  COLOR_STYLES,
-  STATUS_META,
-  STATUSES,
-  type Board,
-  type Status,
-  type Task,
-} from "../types";
-import { cn } from "../lib/utils";
-import TaskItem from "./TaskItem";
-import TaskForm, { type TaskDraft } from "./TaskForm";
-
-interface BoardDetailProps {
-  board: Board;
-  onBack: () => void;
-}
+import { useAppStore } from "@/src/store/app-store";
+import { useConfirm } from "@/src/store/confirm-store";
+import { COLOR_STYLES, STATUS_META, STATUSES } from "@/src/constants";
+import type { BoardDetailProps, Status, Task, TaskDraft } from "@/src/types";
+import { cn } from "@/src/lib/utils";
+import TaskItem from "@/src/components/task-item";
+import TaskForm from "@/src/components/task-form";
 
 const nextStatus: Record<Status, Status> = {
   todo: "in_progress",
@@ -26,7 +15,11 @@ const nextStatus: Record<Status, Status> = {
 };
 
 export default function BoardDetail({ board, onBack }: BoardDetailProps) {
-  const { addTask, updateTask, deleteTask, setTaskStatus, moveTask } = useApp();
+  const addTask = useAppStore((s) => s.addTask);
+  const updateTask = useAppStore((s) => s.updateTask);
+  const deleteTask = useAppStore((s) => s.deleteTask);
+  const setTaskStatus = useAppStore((s) => s.setTaskStatus);
+  const moveTask = useAppStore((s) => s.moveTask);
   const confirm = useConfirm();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
@@ -43,7 +36,7 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
         status,
         tasks: board.tasks.filter((t) => t.status === status),
       })),
-    [board.tasks]
+    [board.tasks],
   );
 
   const done = board.tasks.filter((t) => t.status === "done").length;
@@ -114,7 +107,10 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
         <div className="mt-4">
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div
-              className={cn("h-full rounded-full transition-all duration-500", c.bar)}
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                c.bar,
+              )}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -125,7 +121,8 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
       </div>
 
       <p className="mb-3 text-xs text-slate-400">
-        💡 Drag tasks between columns to change their status, or reorder them within a column.
+        💡 Drag tasks between columns to change their status, or reorder them
+        within a column.
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -146,7 +143,7 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
               "flex flex-col rounded-2xl border p-3 transition-colors duration-200",
               dragOverCol === status
                 ? "border-indigo-500/70 bg-indigo-500/5"
-                : "border-slate-800 bg-slate-900/40"
+                : "border-slate-800 bg-slate-900/40",
             )}
           >
             <div className="mb-3 flex items-center justify-between px-1">
@@ -171,7 +168,7 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
                     "flex flex-1 items-center justify-center rounded-xl border border-dashed py-8 text-center text-xs transition-colors",
                     dragOverCol === status
                       ? "border-indigo-500/50 text-indigo-300"
-                      : "border-slate-800 text-slate-400"
+                      : "border-slate-800 text-slate-400",
                   )}
                 >
                   {dragOverCol === status ? "Drop here" : "No tasks"}
@@ -193,7 +190,11 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
                         setDropIndex(after ? idx + 1 : idx);
                       }}
                       onCycleStatus={() =>
-                        setTaskStatus(board.id, task.id, nextStatus[task.status])
+                        setTaskStatus(
+                          board.id,
+                          task.id,
+                          nextStatus[task.status],
+                        )
                       }
                       onEdit={() => {
                         setEditing(task);

@@ -1,8 +1,87 @@
-node_modules
-dist
-dist-ssr
-*.local
-.DS_Store
+# Dependencies
+node_modules/
+
+# Production builds
+dist/
+build/
+out/
+.next/
+.vercel/
+
+# Coverage
+coverage/
+
+# Logs
+logs/
 *.log
-.vscode/*
-!.vscode/extensions.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.vite/
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Storybook
+storybook-static/
+
+# Test outputs
+playwright-report/
+test-results/
+
+# Cypress
+cypress/screenshots/
+cypress/videos/
+
+# Firebase
+.firebase/
+
+# Netlify
+.netlify/
+
+# Misc
+*.local
+
+# Package manager lock files
+# Descomenta el que NO uses
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Generated files
+*.tgz
+
+# Optional: Ignore generated assets
+# public/generated/
+# src/generated/

@@ -27,8 +27,8 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { COLOR_STYLES } from "../types";
+import { useAppStore } from "@/src/store/app-store";
+import { COLOR_STYLES } from "@/src/constants";
 
 const GRID = "#1e293b";
 const AXIS_TICK = { fontSize: 12, fill: "#94a3b8" };
@@ -44,7 +44,10 @@ const tooltipStyle = {
   itemStyle: { color: "#cbd5e1" },
 } as const;
 
-const MONTH_FMT = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
+const MONTH_FMT = new Intl.DateTimeFormat("en", {
+  month: "long",
+  year: "numeric",
+});
 const MONTH_SHORT = new Intl.DateTimeFormat("en", { month: "short" });
 
 function sameMonth(iso: string, d: Date): boolean {
@@ -58,7 +61,7 @@ function pctDelta(curr: number, prev: number): number {
 }
 
 export default function StatsView() {
-  const { boards } = useApp();
+  const boards = useAppStore((s) => s.boards);
 
   const stats = useMemo(() => {
     const tasks = boards.flatMap((b) => b.tasks);
@@ -77,7 +80,9 @@ export default function StatsView() {
       monthly.push({
         name: MONTH_SHORT.format(d),
         created: tasks.filter((t) => sameMonth(t.createdAt, d)).length,
-        completed: tasks.filter((t) => t.completedAt && sameMonth(t.completedAt, d)).length,
+        completed: tasks.filter(
+          (t) => t.completedAt && sameMonth(t.completedAt, d),
+        ).length,
       });
     }
     const cur = monthly[monthly.length - 1];
@@ -119,7 +124,9 @@ export default function StatsView() {
       <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
         <TrendingUp className="mx-auto mb-3 text-slate-600" size={40} />
         <p className="font-medium text-slate-200">No data yet</p>
-        <p className="text-sm text-slate-400">Add tasks to see your statistics.</p>
+        <p className="text-sm text-slate-400">
+          Add tasks to see your statistics.
+        </p>
       </div>
     );
   }
@@ -175,13 +182,39 @@ export default function StatsView() {
           subtitle="Recent months"
         >
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={stats.monthly} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-              <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.06)" }} />
+            <ComposedChart
+              data={stats.monthly}
+              margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={GRID}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="name"
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                {...tooltipStyle}
+                cursor={{ fill: "rgba(148,163,184,0.06)" }}
+              />
               <Legend wrapperStyle={{ fontSize: 12, color: "#94a3b8" }} />
-              <Bar dataKey="created" name="Created" fill="#fb7185" radius={[6, 6, 0, 0]} barSize={28} />
+              <Bar
+                dataKey="created"
+                name="Created"
+                fill="#fb7185"
+                radius={[6, 6, 0, 0]}
+                barSize={28}
+              />
               <Line
                 type="monotone"
                 dataKey="completed"
@@ -214,7 +247,9 @@ export default function StatsView() {
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-bold text-emerald-400">{stats.rate}%</span>
+              <span className="text-4xl font-bold text-emerald-400">
+                {stats.rate}%
+              </span>
               <span className="mt-1 text-xs font-medium uppercase tracking-widest text-slate-400">
                 Completed
               </span>
@@ -249,8 +284,14 @@ export default function StatsView() {
             </ResponsiveContainer>
             <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2">
               {stats.byBoard.map((e) => (
-                <span key={e.name} className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.hex }} />
+                <span
+                  key={e.name}
+                  className="flex items-center gap-1.5 text-xs text-slate-300"
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: e.hex }}
+                  />
                   {e.name}
                 </span>
               ))}
@@ -260,14 +301,46 @@ export default function StatsView() {
 
         <Card title="Done vs pending by board" subtitle="Current status">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={stats.compare} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-              <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
-              <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.06)" }} />
+            <BarChart
+              data={stats.compare}
+              margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={GRID}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="name"
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                {...tooltipStyle}
+                cursor={{ fill: "rgba(148,163,184,0.06)" }}
+              />
               <Legend wrapperStyle={{ fontSize: 12, color: "#94a3b8" }} />
-              <Bar dataKey="done" name="Done" fill="#818cf8" radius={[6, 6, 0, 0]} barSize={20} />
-              <Bar dataKey="pending" name="Pending" fill="#475569" radius={[6, 6, 0, 0]} barSize={20} />
+              <Bar
+                dataKey="done"
+                name="Done"
+                fill="#818cf8"
+                radius={[6, 6, 0, 0]}
+                barSize={20}
+              />
+              <Bar
+                dataKey="pending"
+                name="Pending"
+                fill="#475569"
+                radius={[6, 6, 0, 0]}
+                barSize={20}
+              />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -330,7 +403,9 @@ function Kpi({
         </span>
         <Icon size={18} className="text-slate-500" />
       </div>
-      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-50">{value}</p>
+      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-50">
+        {value}
+      </p>
       {delta !== undefined ? (
         <p
           className={

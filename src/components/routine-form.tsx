@@ -1,27 +1,27 @@
 import { useState } from "react";
-import Modal from "./Modal";
+import Modal from "@/src/components/modal";
 import {
   BOARD_COLORS,
   COLOR_STYLES,
   FREQUENCIES,
   FREQUENCY_META,
-  type BoardColor,
-  type Frequency,
-  type Routine,
-} from "../types";
-import { cn } from "../lib/utils";
+} from "@/src/constants";
+import type { BoardColor, Frequency, RoutineFormProps } from "@/src/types";
+import { cn } from "@/src/lib/utils";
 
-interface RoutineFormProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (title: string, frequency: Frequency, color: BoardColor) => void;
-  routine?: Routine;
-}
-
-export default function RoutineForm({ open, onClose, onSubmit, routine }: RoutineFormProps) {
+export default function RoutineForm({
+  open,
+  onClose,
+  onSubmit,
+  routine,
+}: RoutineFormProps) {
   const [title, setTitle] = useState(routine?.title ?? "");
-  const [frequency, setFrequency] = useState<Frequency>(routine?.frequency ?? "daily");
-  const [color, setColor] = useState<BoardColor>(routine?.color ?? BOARD_COLORS[1]);
+  const [frequency, setFrequency] = useState<Frequency>(
+    routine?.frequency ?? "daily",
+  );
+  const [color, setColor] = useState<BoardColor>(
+    routine?.color ?? BOARD_COLORS[1],
+  );
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +31,11 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={routine ? "Edit routine" : "New routine"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={routine ? "Edit routine" : "New routine"}
+    >
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-200">
@@ -60,7 +64,7 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
                   "flex-1 rounded-lg px-2 py-2 text-sm font-medium transition",
                   frequency === f
                     ? "bg-indigo-600 text-white"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700",
                 )}
               >
                 {FREQUENCY_META[f].label}
@@ -83,8 +87,9 @@ export default function RoutineForm({ open, onClose, onSubmit, routine }: Routin
                   "h-8 w-8 rounded-full transition",
                   COLOR_STYLES[c].bar,
                   color === c
-                    ? "ring-2 ring-offset-2 ring-offset-slate-900 " + COLOR_STYLES[c].ring
-                    : "opacity-60 hover:opacity-100"
+                    ? "ring-2 ring-offset-2 ring-offset-slate-900 " +
+                        COLOR_STYLES[c].ring
+                    : "opacity-60 hover:opacity-100",
                 )}
                 aria-label={c}
               />

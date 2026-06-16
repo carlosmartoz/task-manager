@@ -1,4 +1,4 @@
-import type { Frequency, Routine } from "../types";
+import type { Frequency, Routine } from "@/src/types";
 
 /** Fecha local en formato YYYY-MM-DD (sin desfase de zona horaria). */
 export function dayKey(d: Date = new Date()): string {
@@ -27,16 +27,21 @@ export function periodKey(freq: Frequency, d: Date = new Date()): string {
 }
 
 /** ¿La rutina ya se completó en el periodo actual? */
-export function isDoneThisPeriod(routine: Routine, now: Date = new Date()): boolean {
+export function isDoneThisPeriod(
+  routine: Routine,
+  now: Date = new Date(),
+): boolean {
   const current = periodKey(routine.frequency, now);
-  return routine.history.some((d) => periodKey(routine.frequency, new Date(d)) === current);
+  return routine.history.some(
+    (d) => periodKey(routine.frequency, new Date(d)) === current,
+  );
 }
 
 /** Racha de periodos consecutivos completados (incluye el actual si está hecho). */
 export function streak(routine: Routine, now: Date = new Date()): number {
   if (routine.history.length === 0) return 0;
   const completed = new Set(
-    routine.history.map((d) => periodKey(routine.frequency, new Date(d)))
+    routine.history.map((d) => periodKey(routine.frequency, new Date(d))),
   );
 
   let count = 0;
@@ -64,6 +69,6 @@ function step(freq: Frequency, d: Date, dir: number) {
 /** Cuántas veces se completó en total (periodos únicos). */
 export function totalCompletions(routine: Routine): number {
   return new Set(
-    routine.history.map((d) => periodKey(routine.frequency, new Date(d)))
+    routine.history.map((d) => periodKey(routine.frequency, new Date(d))),
   ).size;
 }

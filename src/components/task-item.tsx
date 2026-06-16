@@ -1,18 +1,15 @@
-import { Check, Circle, Clock, GripVertical, Pencil, Trash2, CalendarClock } from "lucide-react";
-import { PRIORITY_META, type Task } from "../types";
-import { cn, formatDate, isOverdue } from "../lib/utils";
-
-interface TaskItemProps {
-  task: Task;
-  index: number;
-  onCycleStatus: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDragOverItem: (index: number, after: boolean) => void;
-  dragging: boolean;
-}
+import {
+  Check,
+  Circle,
+  Clock,
+  GripVertical,
+  Pencil,
+  Trash2,
+  CalendarClock,
+} from "lucide-react";
+import { PRIORITY_META } from "@/src/constants";
+import type { TaskItemProps } from "@/src/types";
+import { cn, formatDate, isOverdue } from "@/src/lib/utils";
 
 export default function TaskItem({
   task,
@@ -41,7 +38,7 @@ export default function TaskItem({
       }}
       className={cn(
         "group flex cursor-grab items-start gap-2.5 rounded-xl border border-slate-800 bg-slate-900 p-3 transition-all duration-200 active:cursor-grabbing hover:border-slate-700 hover:shadow-md hover:shadow-black/20",
-        dragging && "opacity-40"
+        dragging && "opacity-40",
       )}
     >
       <GripVertical
@@ -58,7 +55,7 @@ export default function TaskItem({
             ? "border-emerald-500 bg-emerald-500 text-white"
             : task.status === "in_progress"
               ? "border-sky-500 text-sky-300"
-              : "border-slate-500 text-transparent hover:border-slate-400"
+              : "border-slate-500 text-transparent hover:border-slate-400",
         )}
       >
         {done ? (
@@ -74,7 +71,7 @@ export default function TaskItem({
         <p
           className={cn(
             "text-sm font-medium leading-snug",
-            done ? "text-slate-400 line-through" : "text-slate-100"
+            done ? "text-slate-400 line-through" : "text-slate-100",
           )}
         >
           {task.title}
@@ -89,7 +86,7 @@ export default function TaskItem({
           <span
             className={cn(
               "rounded-md px-1.5 py-0.5 text-[11px] font-medium",
-              PRIORITY_META[task.priority].chip
+              PRIORITY_META[task.priority].chip,
             )}
           >
             {PRIORITY_META[task.priority].label}
@@ -101,7 +98,7 @@ export default function TaskItem({
                 "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
                 overdue
                   ? "bg-rose-500/15 text-rose-300"
-                  : "bg-slate-800 text-slate-300"
+                  : "bg-slate-800 text-slate-300",
               )}
             >
               <CalendarClock size={11} />

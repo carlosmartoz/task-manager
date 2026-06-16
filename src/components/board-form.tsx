@@ -1,18 +1,19 @@
 import { useState } from "react";
-import Modal from "./Modal";
-import { BOARD_COLORS, COLOR_STYLES, type Board, type BoardColor } from "../types";
-import { cn } from "../lib/utils";
+import Modal from "@/src/components/modal";
+import { BOARD_COLORS, COLOR_STYLES } from "@/src/constants";
+import type { BoardColor, BoardFormProps } from "@/src/types";
+import { cn } from "@/src/lib/utils";
 
-interface BoardFormProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (title: string, color: BoardColor) => void;
-  board?: Board; // si se pasa, es edición
-}
-
-export default function BoardForm({ open, onClose, onSubmit, board }: BoardFormProps) {
+export default function BoardForm({
+  open,
+  onClose,
+  onSubmit,
+  board,
+}: BoardFormProps) {
   const [title, setTitle] = useState(board?.title ?? "");
-  const [color, setColor] = useState<BoardColor>(board?.color ?? BOARD_COLORS[0]);
+  const [color, setColor] = useState<BoardColor>(
+    board?.color ?? BOARD_COLORS[0],
+  );
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +23,11 @@ export default function BoardForm({ open, onClose, onSubmit, board }: BoardFormP
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={board ? "Edit board" : "New board"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={board ? "Edit board" : "New board"}
+    >
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-200">
@@ -51,8 +56,9 @@ export default function BoardForm({ open, onClose, onSubmit, board }: BoardFormP
                   "h-8 w-8 rounded-full transition",
                   COLOR_STYLES[c].bar,
                   color === c
-                    ? "ring-2 ring-offset-2 ring-offset-slate-900 " + COLOR_STYLES[c].ring
-                    : "opacity-60 hover:opacity-100"
+                    ? "ring-2 ring-offset-2 ring-offset-slate-900 " +
+                        COLOR_STYLES[c].ring
+                    : "opacity-60 hover:opacity-100",
                 )}
                 aria-label={c}
               />

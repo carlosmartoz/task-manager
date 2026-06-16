@@ -11,18 +11,13 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { useConfirm } from "../context/ConfirmProvider";
-import {
-  COLOR_STYLES,
-  FREQUENCIES,
-  FREQUENCY_META,
-  type Frequency,
-  type Routine,
-} from "../types";
-import { cn } from "../lib/utils";
-import { isDoneThisPeriod, streak, totalCompletions } from "../lib/routines";
-import RoutineForm from "./RoutineForm";
+import { useAppStore } from "@/src/store/app-store";
+import { useConfirm } from "@/src/store/confirm-store";
+import { COLOR_STYLES, FREQUENCIES, FREQUENCY_META } from "@/src/constants";
+import type { Frequency, Routine } from "@/src/types";
+import { cn } from "@/src/lib/utils";
+import { isDoneThisPeriod, streak, totalCompletions } from "@/src/lib/routines";
+import RoutineForm from "@/src/components/routine-form";
 
 const FREQ_ICON: Record<Frequency, LucideIcon> = {
   daily: Sun,
@@ -31,7 +26,11 @@ const FREQ_ICON: Record<Frequency, LucideIcon> = {
 };
 
 export default function RoutinesView() {
-  const { routines, addRoutine, updateRoutine, deleteRoutine, toggleRoutine } = useApp();
+  const routines = useAppStore((s) => s.routines);
+  const addRoutine = useAppStore((s) => s.addRoutine);
+  const updateRoutine = useAppStore((s) => s.updateRoutine);
+  const deleteRoutine = useAppStore((s) => s.deleteRoutine);
+  const toggleRoutine = useAppStore((s) => s.toggleRoutine);
   const confirm = useConfirm();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Routine | null>(null);
@@ -71,7 +70,9 @@ export default function RoutinesView() {
       {routines.length === 0 ? (
         <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
           <Repeat className="mx-auto mb-3 text-slate-600" size={40} />
-          <p className="font-medium text-slate-200">You don't have any routines yet</p>
+          <p className="font-medium text-slate-200">
+            You don't have any routines yet
+          </p>
           <p className="mb-4 text-sm text-slate-400">
             Create daily, weekly or monthly habits and keep your streak going.
           </p>
@@ -86,8 +87,11 @@ export default function RoutinesView() {
         <>
           <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200">
             You've completed{" "}
-            <span className="font-semibold text-emerald-400">{doneCount}</span> of{" "}
-            <span className="font-semibold text-slate-50">{routines.length}</span>{" "}
+            <span className="font-semibold text-emerald-400">{doneCount}</span>{" "}
+            of{" "}
+            <span className="font-semibold text-slate-50">
+              {routines.length}
+            </span>{" "}
             routines for their current period. Keep it up! 🚀
           </div>
 
@@ -159,7 +163,9 @@ function RoutineRow({
     <div
       className={cn(
         "group flex items-center gap-3 rounded-xl border bg-slate-900 p-3 transition-all duration-200 hover:shadow-md hover:shadow-black/20",
-        done ? "border-emerald-500/40" : "border-slate-800 hover:border-slate-700"
+        done
+          ? "border-emerald-500/40"
+          : "border-slate-800 hover:border-slate-700",
       )}
     >
       <button
@@ -169,7 +175,7 @@ function RoutineRow({
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-90",
           done
             ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-slate-500 text-transparent hover:border-emerald-500"
+            : "border-slate-500 text-transparent hover:border-emerald-500",
         )}
       >
         <Check size={15} strokeWidth={3} />
@@ -181,7 +187,7 @@ function RoutineRow({
         <p
           className={cn(
             "truncate text-sm font-medium",
-            done ? "text-slate-400" : "text-slate-100"
+            done ? "text-slate-400" : "text-slate-100",
           )}
         >
           {routine.title}

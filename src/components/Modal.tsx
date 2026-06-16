@@ -1,13 +1,6 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { X } from "lucide-react";
-
-interface ModalProps {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-  maxWidth?: string;
-}
+import type { ModalProps } from "@/src/types";
 
 export default function Modal({
   open,

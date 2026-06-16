@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Plus, LayoutGrid } from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { useConfirm } from "../context/ConfirmProvider";
-import type { Board, BoardColor } from "../types";
-import BoardCard from "./BoardCard";
-import BoardForm from "./BoardForm";
-import BoardDetail from "./BoardDetail";
+import { useAppStore } from "@/src/store/app-store";
+import { useConfirm } from "@/src/store/confirm-store";
+import type { Board, BoardColor } from "@/src/types";
+import BoardCard from "@/src/components/board-card";
+import BoardForm from "@/src/components/board-form";
+import BoardDetail from "@/src/components/board-detail";
 
 export default function BoardsView() {
-  const { boards, addBoard, updateBoard, deleteBoard } = useApp();
+  const boards = useAppStore((s) => s.boards);
+  const addBoard = useAppStore((s) => s.addBoard);
+  const updateBoard = useAppStore((s) => s.updateBoard);
+  const deleteBoard = useAppStore((s) => s.deleteBoard);
   const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -57,7 +60,9 @@ export default function BoardsView() {
       {boards.length === 0 ? (
         <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
           <LayoutGrid className="mx-auto mb-3 text-slate-600" size={40} />
-          <p className="font-medium text-slate-200">You don't have any boards yet</p>
+          <p className="font-medium text-slate-200">
+            You don't have any boards yet
+          </p>
           <p className="mb-4 text-sm text-slate-400">
             Create your first board to start organizing tasks.
           </p>

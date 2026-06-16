@@ -1,28 +1,22 @@
 import { useState } from "react";
-import Modal from "./Modal";
-import { PRIORITY_META, type Priority, type Task } from "../types";
-import { cn, toDateInput } from "../lib/utils";
-
-export interface TaskDraft {
-  title: string;
-  description?: string;
-  priority: Priority;
-  dueDate?: string;
-}
-
-interface TaskFormProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (draft: TaskDraft) => void;
-  task?: Task; // edición
-}
+import Modal from "@/src/components/modal";
+import { PRIORITY_META } from "@/src/constants";
+import type { Priority, TaskFormProps } from "@/src/types";
+import { cn, toDateInput } from "@/src/lib/utils";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high"];
 
-export default function TaskForm({ open, onClose, onSubmit, task }: TaskFormProps) {
+export default function TaskForm({
+  open,
+  onClose,
+  onSubmit,
+  task,
+}: TaskFormProps) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
+  const [priority, setPriority] = useState<Priority>(
+    task?.priority ?? "medium",
+  );
   const [dueDate, setDueDate] = useState(toDateInput(task?.dueDate));
 
   const submit = (e: React.FormEvent) => {
@@ -38,7 +32,11 @@ export default function TaskForm({ open, onClose, onSubmit, task }: TaskFormProp
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={task ? "Editar tarea" : "Nueva tarea"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={task ? "Editar tarea" : "Nueva tarea"}
+    >
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-200">
@@ -55,7 +53,8 @@ export default function TaskForm({ open, onClose, onSubmit, task }: TaskFormProp
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-200">
-            Description <span className="font-normal text-slate-400">(optional)</span>
+            Description{" "}
+            <span className="font-normal text-slate-400">(optional)</span>
           </label>
           <textarea
             value={description}
@@ -80,8 +79,9 @@ export default function TaskForm({ open, onClose, onSubmit, task }: TaskFormProp
                   className={cn(
                     "flex-1 rounded-lg px-2 py-2 text-xs font-medium transition",
                     priority === p
-                      ? PRIORITY_META[p].chip + " ring-2 ring-offset-1 ring-offset-slate-900 ring-slate-600"
-                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      ? PRIORITY_META[p].chip +
+                          " ring-2 ring-offset-1 ring-offset-slate-900 ring-slate-600"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700",
                   )}
                 >
                   {PRIORITY_META[p].label}
@@ -92,7 +92,8 @@ export default function TaskForm({ open, onClose, onSubmit, task }: TaskFormProp
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-200">
-              Due date <span className="font-normal text-slate-400">(optional)</span>
+              Due date{" "}
+              <span className="font-normal text-slate-400">(optional)</span>
             </label>
             <input
               type="date"

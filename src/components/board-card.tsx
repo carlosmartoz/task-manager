@@ -1,16 +1,21 @@
-import { CheckCircle2, ListTodo, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ListTodo,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
-import { COLOR_STYLES, type Board } from "../types";
-import { cn } from "../lib/utils";
+import { COLOR_STYLES } from "@/src/constants";
+import type { BoardCardProps } from "@/src/types";
+import { cn } from "@/src/lib/utils";
 
-interface BoardCardProps {
-  board: Board;
-  onOpen: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCardProps) {
+export default function BoardCard({
+  board,
+  onOpen,
+  onEdit,
+  onDelete,
+}: BoardCardProps) {
   const [menu, setMenu] = useState(false);
   const c = COLOR_STYLES[board.color];
   const total = board.tasks.length;
@@ -26,7 +31,9 @@ export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCard
       <div className={cn("h-1.5 w-full", c.bar)} />
       <div className="p-5">
         <div className="flex items-start justify-between">
-          <h3 className="text-lg font-semibold text-slate-100">{board.title}</h3>
+          <h3 className="text-lg font-semibold text-slate-100">
+            {board.title}
+          </h3>
 
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
@@ -79,7 +86,10 @@ export default function BoardCard({ board, onOpen, onEdit, onDelete }: BoardCard
         <div className="mt-4">
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div
-              className={cn("h-full rounded-full transition-all duration-500", c.bar)}
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                c.bar,
+              )}
               style={{ width: `${pct}%` }}
             />
           </div>
