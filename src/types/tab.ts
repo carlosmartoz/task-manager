@@ -15,3 +15,8 @@ export interface TabNavProps {
   layoutId: string;
   orientation?: "vertical" | "horizontal";
 }
+
+export interface HeaderProps {
+  tab: Tab;
+  onChange: (tab: Tab) => void;
+}

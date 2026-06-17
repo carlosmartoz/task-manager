@@ -5,15 +5,14 @@
 }
 
 html {
-  scroll-behavior: smooth;
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
   @apply bg-slate-950 text-slate-100 antialiased;
 }
 
-/* Cursor pointer para todos los elementos interactivos */
 button:not(:disabled),
 [role="button"],
 a,
@@ -23,18 +22,17 @@ label[for] {
   cursor: pointer;
 }
 
-/* Transición global suave en colores/transform para una sensación elegante */
 button,
 a,
 input,
 textarea,
 select {
-  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-property:
+    color, background-color, border-color, box-shadow, transform, opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
 
-/* Scrollbar oscuro */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -49,28 +47,48 @@ select {
   @apply bg-slate-600;
 }
 
-/* El input de fecha en modo oscuro */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
   cursor: pointer;
 }
 
-/* ── Animaciones ── */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -86,7 +104,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   animation: slideDown 0.16s ease-out both;
 }
 
-/* Respeta la preferencia de reducir movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
