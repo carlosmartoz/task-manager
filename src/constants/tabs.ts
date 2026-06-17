@@ -1,5 +1,5 @@
-import { BarChart3, LayoutGrid, Repeat } from "lucide-react";
 import type { TabConfig } from "@/src/types";
+import { BarChart3, LayoutGrid, Repeat } from "lucide-react";
 
 export const TABS: TabConfig[] = [
   { key: "boards", label: "Boards", icon: LayoutGrid },

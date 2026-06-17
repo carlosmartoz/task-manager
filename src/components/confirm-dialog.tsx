@@ -1,4 +1,6 @@
 import { AlertTriangle } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { fadeIn, scaleIn } from "@/src/lib/motion";
 import { useConfirmStore } from "@/src/store/confirm-store";
 
 /** Diálogo de confirmación global. Se monta una sola vez en el layout. */
@@ -6,17 +8,19 @@ export default function ConfirmDialog() {
   const options = useConfirmStore((s) => s.options);
   const resolve = useConfirmStore((s) => s.resolve);
 
-  if (!options) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in"
-      onMouseDown={() => resolve(false)}
-    >
-      <div
-        className="w-full max-w-sm animate-scale-in rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+    <AnimatePresence>
+      {options && (
+        <motion.div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onMouseDown={() => resolve(false)}
+          {...fadeIn}
+        >
+          <motion.div
+            className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+            onMouseDown={(e) => e.stopPropagation()}
+            {...scaleIn}
+          >
         <div className="flex items-start gap-3">
           <div
             className={
@@ -58,7 +62,9 @@ export default function ConfirmDialog() {
             {options.confirmLabel ?? "Confirm"}
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

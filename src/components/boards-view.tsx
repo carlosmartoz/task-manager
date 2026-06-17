@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Plus, LayoutGrid } from "lucide-react";
+import { fadeInUp } from "@/src/lib/motion";
 import { useAppStore } from "@/src/store/app-store";
 import { useConfirm } from "@/src/store/confirm-store";
 import type { Board, BoardColor } from "@/src/types";
@@ -58,7 +60,10 @@ export default function BoardsView() {
       </div>
 
       {boards.length === 0 ? (
-        <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+        <motion.div
+          {...fadeInUp}
+          className="rounded-2xl border border-dashed border-slate-800 py-20 text-center"
+        >
           <LayoutGrid className="mx-auto mb-3 text-slate-600" size={40} />
           <p className="font-medium text-slate-200">
             You don't have any boards yet
@@ -72,14 +77,14 @@ export default function BoardsView() {
           >
             Create board
           </button>
-        </div>
+        </motion.div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {boards.map((board, i) => (
-            <div
+            <motion.div
               key={board.id}
-              className="animate-fade-in-up"
-              style={{ animationDelay: `${i * 60}ms` }}
+              {...fadeInUp}
+              transition={{ ...fadeInUp.transition, delay: i * 0.06 }}
             >
               <BoardCard
                 board={board}
@@ -90,7 +95,7 @@ export default function BoardsView() {
                 }}
                 onDelete={() => askDelete(board)}
               />
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

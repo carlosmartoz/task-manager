@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   CalendarDays,
   CalendarRange,
@@ -17,6 +18,7 @@ import { COLOR_STYLES, FREQUENCIES, FREQUENCY_META } from "@/src/constants";
 import type { Frequency, Routine } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 import { isDoneThisPeriod, streak, totalCompletions } from "@/src/lib/routines";
+import { fadeInUp } from "@/src/lib/motion";
 import RoutineForm from "@/src/components/routine-form";
 
 const FREQ_ICON: Record<Frequency, LucideIcon> = {
@@ -68,7 +70,10 @@ export default function RoutinesView() {
       </div>
 
       {routines.length === 0 ? (
-        <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+        <motion.div
+          {...fadeInUp}
+          className="rounded-2xl border border-dashed border-slate-800 py-20 text-center"
+        >
           <Repeat className="mx-auto mb-3 text-slate-600" size={40} />
           <p className="font-medium text-slate-200">
             You don't have any routines yet
@@ -82,7 +87,7 @@ export default function RoutinesView() {
           >
             Create routine
           </button>
-        </div>
+        </motion.div>
       ) : (
         <>
           <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200">
@@ -101,7 +106,7 @@ export default function RoutinesView() {
               if (list.length === 0) return null;
               const Icon = FREQ_ICON[freq];
               return (
-                <section key={freq} className="animate-fade-in-up">
+                <motion.section key={freq} {...fadeInUp}>
                   <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                     <Icon size={16} /> {FREQUENCY_META[freq].labelPlural}
                   </h2>
@@ -119,7 +124,7 @@ export default function RoutinesView() {
                       />
                     ))}
                   </div>
-                </section>
+                </motion.section>
               );
             })}
           </div>

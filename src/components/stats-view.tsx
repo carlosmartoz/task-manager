@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   Bar,
   BarChart,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/src/store/app-store";
 import { COLOR_STYLES } from "@/src/constants";
+import { fadeInUp } from "@/src/lib/motion";
 
 const GRID = "#1e293b";
 const AXIS_TICK = { fontSize: 12, fill: "#94a3b8" };
@@ -121,13 +123,16 @@ export default function StatsView() {
 
   if (stats.total === 0) {
     return (
-      <div className="animate-fade-in-up rounded-2xl border border-dashed border-slate-800 py-20 text-center">
+      <motion.div
+        {...fadeInUp}
+        className="rounded-2xl border border-dashed border-slate-800 py-20 text-center"
+      >
         <TrendingUp className="mx-auto mb-3 text-slate-600" size={40} />
         <p className="font-medium text-slate-200">No data yet</p>
         <p className="text-sm text-slate-400">
           Add tasks to see your statistics.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
@@ -361,16 +366,17 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div
+    <motion.div
+      {...fadeInUp}
       className={
-        "animate-fade-in-up rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm " +
+        "rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm " +
         (className ?? "")
       }
     >
       <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
       {subtitle && <p className="mb-4 text-xs text-slate-400">{subtitle}</p>}
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -393,9 +399,10 @@ function Kpi({
 }) {
   const positive = (delta ?? 0) >= 0;
   return (
-    <div
-      className="animate-fade-in-up rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm transition-colors hover:border-slate-700"
-      style={{ animationDelay: `${delay}ms` }}
+    <motion.div
+      {...fadeInUp}
+      transition={{ ...fadeInUp.transition, delay: delay / 1000 }}
+      className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm transition-colors hover:border-slate-700"
     >
       <div className="flex items-start justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -420,6 +427,6 @@ function Kpi({
       ) : (
         sub && <p className="mt-1.5 text-xs text-slate-400">{sub}</p>
       )}
-    </div>
+    </motion.div>
   );
 }

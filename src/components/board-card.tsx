@@ -6,7 +6,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { COLOR_STYLES } from "@/src/constants";
+import { slideDown } from "@/src/lib/motion";
 import type { BoardCardProps } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 
@@ -44,12 +46,17 @@ export default function BoardCard({
               <MoreVertical size={18} />
             </button>
             {menu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setMenu(false)}
-                />
-                <div className="absolute right-0 z-20 mt-1 w-36 origin-top-right animate-slide-down overflow-hidden rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl">
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenu(false)}
+              />
+            )}
+            <AnimatePresence>
+              {menu && (
+                <motion.div
+                  className="absolute right-0 z-20 mt-1 w-36 origin-top-right overflow-hidden rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl"
+                  {...slideDown}
+                >
                   <button
                     onClick={() => {
                       setMenu(false);
@@ -68,9 +75,9 @@ export default function BoardCard({
                   >
                     <Trash2 size={14} /> Delete
                   </button>
-                </div>
-              </>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 

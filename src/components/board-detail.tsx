@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { Plus, ArrowLeft } from "lucide-react";
+import { fadeIn } from "@/src/lib/motion";
 import { useAppStore } from "@/src/store/app-store";
 import { useConfirm } from "@/src/store/confirm-store";
 import { COLOR_STYLES, STATUS_META, STATUSES } from "@/src/constants";
@@ -76,7 +78,7 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
   };
 
   return (
-    <div className="animate-fade-in">
+    <motion.div {...fadeIn}>
       <button
         onClick={onBack}
         className="mb-4 flex items-center gap-1.5 text-sm font-medium text-slate-300 transition hover:text-slate-100"
@@ -224,6 +226,6 @@ export default function BoardDetail({ board, onBack }: BoardDetailProps) {
         onSubmit={handleSubmit}
         task={editing ?? undefined}
       />
-    </div>
+    </motion.div>
   );
 }

@@ -8,15 +8,7 @@ export interface TabConfig {
   icon: LucideIcon;
 }
 
-export interface TabNavProps {
+export interface TabStore {
   tab: Tab;
-  onChange: (tab: Tab) => void;
-  /** Shared layout id for the animated active indicator (must be unique per nav instance). */
-  layoutId: string;
-  orientation?: "vertical" | "horizontal";
-}
-
-export interface HeaderProps {
-  tab: Tab;
-  onChange: (tab: Tab) => void;
+  onChangeTab: (tab: Tab) => void;
 }
