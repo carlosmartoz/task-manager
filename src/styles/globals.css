@@ -15,7 +15,6 @@
 @theme {
   /* Inter for the whole UI. Loaded via <link> in index.html. */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* ---- Neutral — near-black surfaces, borders & text ---- */
   --color-page: #07070b; /* app background */
@@ -73,17 +72,14 @@ html {
 
 body {
   @apply bg-page text-fg font-sans antialiased;
+
   /* Cyberpunk: force all copy to uppercase for the terminal/HUD aesthetic. */
   text-transform: uppercase;
   /* Faint tech grid + vignette for the cyberpunk ambiance */
   background-image:
     linear-gradient(rgba(255, 42, 72, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 42, 72, 0.03) 1px, transparent 1px),
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(255, 42, 72, 0.06),
-      transparent 60%
-    );
+    radial-gradient(circle at 50% 0%, rgba(255, 42, 72, 0.06), transparent 60%);
   background-size:
     40px 40px,
     40px 40px,

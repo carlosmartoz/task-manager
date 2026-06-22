@@ -25,7 +25,7 @@ export default function GroupForm({
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block font-mono text-xs font-medium uppercase tracking-wide text-fg-label">
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-fg-label">
             Task group name
           </label>
           <input

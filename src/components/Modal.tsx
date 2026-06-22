@@ -37,7 +37,7 @@ export default function Modal({
           >
             <div className="h-1 w-full bg-accent" />
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h2 className="font-mono text-lg font-bold uppercase tracking-wide text-fg">
+              <h2 className="text-lg font-bold uppercase tracking-wide text-fg">
                 {title}
               </h2>
               <button

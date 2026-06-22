@@ -43,7 +43,7 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
     <motion.div {...fadeIn}>
       <button
         onClick={onBack}
-        className="mb-4 flex cursor-pointer items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-fg-muted transition hover:text-fg"
+        className="mb-4 flex cursor-pointer items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-fg-muted transition hover:text-fg"
       >
         <ArrowLeft size={18} /> Back to task groups
       </button>
@@ -52,7 +52,7 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
         <div className="flex items-center gap-3">
           <span className="h-8 w-1.5 bg-accent" />
           <div className="flex-1">
-            <h1 className="font-mono text-xl font-bold normal-case tracking-wide text-fg-strong">
+            <h1 className="text-xl font-bold normal-case tracking-wide text-fg-strong">
               {group.title}
             </h1>
             <p className="text-sm text-fg-muted normal-case">
@@ -68,7 +68,7 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-1 text-right font-mono text-xs font-medium text-fg-subtle">
+          <p className="mt-1 text-right text-xs font-medium text-fg-subtle">
             {pct}% COMPLETE
           </p>
         </div>

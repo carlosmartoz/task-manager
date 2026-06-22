@@ -1,4 +1,10 @@
-import { CheckCircle2, ListTodo, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ListTodo,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { slideDown } from "@/src/lib/motion";
@@ -21,14 +27,14 @@ export default function GroupCard({
     <div
       onClick={onOpen}
       className={cn(
-        "group cyber-clip relative cursor-pointer overflow-hidden border border-border bg-surface transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg",
+        "group cyber-clip relative cursor-pointer overflow-hidden border border-border bg-surface transition hover:-translate-y-0.5 hover:border-border hover:shadow-lg",
         "hover:shadow-overlay/40",
       )}
     >
       <div className="h-1 w-full bg-accent" />
       <div className="p-5">
         <div className="flex items-start justify-between">
-          <h3 className="font-mono text-lg font-bold normal-case tracking-wide text-fg-strong">
+          <h3 className="text-base font-bold normal-case tracking-wide text-fg-strong">
             {group.title}
           </h3>
 
@@ -41,7 +47,10 @@ export default function GroupCard({
               <MoreVertical size={20} />
             </button>
             {menu && (
-              <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenu(false)}
+              />
             )}
             <AnimatePresence>
               {menu && (
@@ -83,13 +92,13 @@ export default function GroupCard({
         </div>
 
         <div className="mt-4">
-          <div className="h-1.5 overflow-hidden bg-surface-raised">
+          <div className="h-1 overflow-hidden bg-surface-raised">
             <div
               className="h-full bg-accent transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-1.5 font-mono text-xs font-medium text-fg-subtle">
+          <p className="mt-1.5 text-xs font-medium text-fg-subtle">
             {total === 0 ? "NO TASKS" : `${pct}% COMPLETE`}
           </p>
         </div>

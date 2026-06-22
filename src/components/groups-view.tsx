@@ -44,7 +44,7 @@ export default function GroupsView() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-mono text-base font-bold uppercase tracking-wide text-fg-strong">
+        <h1 className="text-base font-bold uppercase tracking-wide text-fg-strong">
           Task groups
         </h1>
         <button

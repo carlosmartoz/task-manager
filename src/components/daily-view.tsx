@@ -55,7 +55,7 @@ export default function DailyView() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-mono text-base font-bold uppercase tracking-wide text-fg-strong">
+        <h1 className="text-base font-bold uppercase tracking-wide text-fg-strong">
           Daily tasks
         </h1>
       </div>

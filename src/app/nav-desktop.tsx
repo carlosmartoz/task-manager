@@ -24,7 +24,7 @@ export function NavDesktop() {
               key={t.key}
               onClick={() => onChangeTab(t.key)}
               className={cn(
-                "relative flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 font-mono text-sm font-medium uppercase tracking-wide transition-colors duration-200",
+                "relative flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors duration-200",
                 active
                   ? "text-accent-soft"
                   : "text-fg-muted hover:bg-surface-raised/60 hover:text-fg",
