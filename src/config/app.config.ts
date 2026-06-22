@@ -11,8 +11,12 @@ export const appConfig = {
     name: "Task Manager",
   },
   theme: {
-    /** Accent color used across interactive elements. */
-    accent: "indigo",
+    /**
+     * Colors are defined as semantic design tokens in src/styles/globals.css
+     * (the @theme block) — that is the single place to reskin the palette.
+     * The accent is the Cyberpunk red; change --color-accent* there.
+     */
+    accent: "red",
   },
 } as const;
 

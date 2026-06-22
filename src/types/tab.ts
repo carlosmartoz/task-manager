@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type Tab = "boards" | "routines" | "stats";
+export type Tab = "groups" | "daily";
 
 export interface TabConfig {
   key: Tab;

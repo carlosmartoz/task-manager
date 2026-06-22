@@ -1,8 +1,68 @@
 @import "tailwindcss";
 
-/* Design tokens (theme) */
+/* =========================================================================
+   CYBERPUNK 2077 THEME — single source of truth for the whole color system.
+
+   Every UI color is a semantic token below. Components use semantic utility
+   classes (bg-surface, text-fg-muted, border-border, bg-accent, …) instead of
+   raw palette classes, so reskinning happens here.
+
+   Signature look: neon red (#FF2A48) on near-black, with mint "success",
+   cyan "info" and orange "warning" neon accents. Dark, fixed.
+
+   Task groups all use the red accent — there is no per-group color picker.
+   ========================================================================= */
 @theme {
+  /* Inter for the whole UI. Loaded via <link> in index.html. */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ---- Neutral — near-black surfaces, borders & text ---- */
+  --color-page: #07070b; /* app background */
+  --color-surface: #0e0f16; /* cards, panels, nav, modals */
+  --color-surface-raised: #161821; /* chips, inputs, 2nd-level bg */
+  --color-surface-strong: #20232f; /* selected chips, scrollbar */
+
+  --color-border: #1d2029; /* default borders */
+  --color-border-strong: #2c303d; /* input / card borders */
+  --color-border-muted: #3b404f; /* focus rings */
+
+  --color-fg-strong: #f3f4e6; /* headings / brand */
+  --color-fg: #d6d8ca; /* body text */
+  --color-fg-label: #c3c5b6; /* labels, buttons */
+  --color-fg-muted: #9da0a8; /* descriptions */
+  --color-fg-subtle: #888c96; /* secondary, placeholders (AA on surfaces) */
+  --color-fg-faint: #4c505a; /* faint text, checkbox borders */
+  --color-fg-ghost: #353945; /* empty-state icons */
+
+  --color-inverse: #ffffff; /* text on solid red buttons */
+  --color-overlay: #000000; /* modal backdrops & shadows */
+
+  /* ---- Accent (Cyberpunk red) — brand & primary actions ---- */
+  --color-accent: #ff2a48; /* bars, borders, rings, button hover */
+  --color-accent-strong: #e10833; /* primary button bg (hover → accent) */
+  --color-accent-muted: #c93a4a; /* accent text variant */
+  --color-accent-soft: #ff7088; /* accent text (active tab, chips) */
+
+  /* ---- Semantic: success (neon mint) — done / positive ---- */
+  --color-success: #19e6a8;
+  --color-success-text: #3df0bf;
+  --color-success-fg: #88f5d4;
+
+  /* ---- Semantic: info (cyan) ---- */
+  --color-info: #00d4ff;
+  --color-info-fg: #7fe6ff;
+
+  /* ---- Semantic: warning (orange) ---- */
+  --color-warning: #ff9d2e;
+  --color-warning-text: #ffb259;
+  --color-warning-fg: #ffc785;
+
+  /* ---- Semantic: danger (neon red) — destructive ---- */
+  --color-danger: #ff2e4d; /* solid */
+  --color-danger-strong: #e01038; /* destructive button bg */
+  --color-danger-text: #ff5c74; /* standalone bright text */
+  --color-danger-fg: #ff8a99; /* chip text */
 }
 
 /* Base document: force dark color scheme and smooth scrolling */
@@ -12,7 +72,36 @@ html {
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  @apply bg-page text-fg font-sans antialiased;
+  /* Cyberpunk: force all copy to uppercase for the terminal/HUD aesthetic. */
+  text-transform: uppercase;
+  /* Faint tech grid + vignette for the cyberpunk ambiance */
+  background-image:
+    linear-gradient(rgba(255, 42, 72, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 42, 72, 0.03) 1px, transparent 1px),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 42, 72, 0.06),
+      transparent 60%
+    );
+  background-size:
+    40px 40px,
+    40px 40px,
+    100% 100%;
+  background-attachment: fixed;
+}
+
+/* Angular "tech panel" corners — the signature Cyberpunk cut-corner shape.
+   Applied to cards, modals and panels via the `cyber-clip` class. */
+.cyber-clip {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
 }
 
 /* Interactive elements always show a pointer cursor */
@@ -37,39 +126,29 @@ select {
   transition-duration: 200ms;
 }
 
-/* Custom scrollbar styled with the project palette (slate + indigo accent) */
-
-/* Firefox: thin slate thumb over a transparent track */
+/* Custom scrollbar styled with the project palette (neon yellow thumb on hover) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-slate-700) transparent;
+  scrollbar-color: var(--color-surface-strong) transparent;
 }
-
-/* WebKit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-slate-900/40;
+  @apply bg-surface/40;
 }
 ::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-slate-700;
+  @apply bg-surface-strong;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-indigo-500;
+  @apply bg-accent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-corner {
   @apply bg-transparent;
-}
-
-/* Lighten the native date picker icon so it reads on the dark theme */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
-  cursor: pointer;
 }
 
 /* Respect users who prefer reduced motion: drop animations and transitions */
