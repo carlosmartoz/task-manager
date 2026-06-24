@@ -5,19 +5,24 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { slideDown } from "@/src/lib/motion";
 import type { GroupCardProps } from "@/src/types";
-import { cn } from "@/src/lib/utils";
 
-export default function GroupCard({
-  group,
-  onOpen,
-  onEdit,
-  onDelete,
-}: GroupCardProps) {
+export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [menu]);
+
   const total = group.tasks.length;
   const done = group.tasks.filter((t) => t.done).length;
   const pending = total - done;
@@ -26,10 +31,7 @@ export default function GroupCard({
   return (
     <div
       onClick={onOpen}
-      className={cn(
-        "group cyber-clip relative cursor-pointer overflow-hidden border border-border bg-surface transition hover:-translate-y-0.5 hover:border-border hover:shadow-lg",
-        "hover:shadow-overlay/40",
-      )}
+      className="group cyber-clip relative cursor-pointer overflow-hidden border border-border bg-surface"
     >
       <div className="h-1 w-full bg-accent" />
       <div className="p-5">
@@ -38,20 +40,18 @@ export default function GroupCard({
             {group.title}
           </h3>
 
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={menuRef}
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setMenu((v) => !v)}
-              className="rounded-sm p-1 text-fg-muted opacity-0 transition hover:bg-surface-raised hover:text-fg group-hover:opacity-100"
+              className="rounded-sm p-1 text-fg-muted transition hover:bg-surface-raised hover:text-fg"
               aria-label="Options"
             >
               <MoreVertical size={20} />
             </button>
-            {menu && (
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenu(false)}
-              />
-            )}
             <AnimatePresence>
               {menu && (
                 <motion.div

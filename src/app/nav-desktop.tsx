@@ -10,31 +10,29 @@ export function NavDesktop() {
   const onChangeTab = useTabStore((s) => s.onChangeTab);
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface p-5 lg:flex lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface p-6 lg:flex lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
       <Brand />
 
       <nav className="space-y-1">
         {TABS.map((t) => {
           const Icon = t.icon;
 
-          const active = tab === t.key;
-
           return (
             <button
-              key={t.key}
-              onClick={() => onChangeTab(t.key)}
+              key={t.id}
+              onClick={() => onChangeTab(t.id)}
               className={cn(
-                "relative flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors duration-200",
-                active
+                "relative flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium uppercase",
+                tab === t.id
                   ? "text-accent-soft"
-                  : "text-fg-muted hover:bg-surface-raised/60 hover:text-fg",
+                  : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground",
               )}
             >
-              {active && (
+              {tab === t.id && (
                 <motion.span
                   layoutId="sidebar-active"
-                  className="absolute inset-0 -z-10 border-l-4 border-accent bg-accent/15"
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                  className="absolute inset-0 -z-10 border-l-4 border-accent bg-accent/15"
                 />
               )}
 

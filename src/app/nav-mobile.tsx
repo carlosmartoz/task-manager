@@ -10,7 +10,7 @@ export function NavMobile() {
   const onChangeTab = useTabStore((s) => s.onChangeTab);
 
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-surface/90 px-4 py-2 backdrop-blur lg:hidden">
+    <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-surface px-4 py-2 backdrop-blur lg:hidden">
       <span className="mr-auto min-w-0">
         <Brand />
       </span>
@@ -18,29 +18,27 @@ export function NavMobile() {
       {TABS.map((t) => {
         const Icon = t.icon;
 
-        const active = tab === t.key;
-
         return (
           <button
-            key={t.key}
+            key={t.id}
             aria-label={t.label}
-            onClick={() => onChangeTab(t.key)}
+            onClick={() => onChangeTab(t.id)}
             className={cn(
-              "relative cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
-              active
+              "relative px-3 py-1.5 text-sm font-medium",
+              tab === t.id
                 ? "text-accent-soft"
-                : "text-fg-muted hover:bg-surface-raised/60 hover:text-fg",
+                : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground",
             )}
           >
-            {active && (
+            {tab === t.id && (
               <motion.span
                 layoutId="header-active-mobile"
-                className="absolute inset-0 -z-10 rounded-sm bg-accent/15"
+                className="absolute inset-0 -z-10 bg-accent/15"
                 transition={{ type: "spring", stiffness: 500, damping: 40 }}
               />
             )}
 
-            <Icon className="h-5 w-5" />
+            <Icon size={20} />
           </button>
         );
       })}

@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
-export type Tab = "groups" | "daily";
+export type Tab = "task-groups" | "daily-tasks";
 
 export interface TabConfig {
-  key: Tab;
+  id: Tab;
   label: string;
   icon: LucideIcon;
 }

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, LayoutGrid } from "lucide-react";
-import { fadeInUp } from "@/src/lib/motion";
-import { useAppStore } from "@/src/store/app-store";
-import { useConfirm } from "@/src/store/confirm-store";
 import type { Group } from "@/src/types";
-import GroupCard from "@/src/components/group-card";
+import { fadeInUp } from "@/src/lib/motion";
+import { Plus, LayoutGrid } from "lucide-react";
+import { useAppStore } from "@/src/store/app-store";
+import { TaskCard } from "@/src/task-groups/task-card";
 import GroupForm from "@/src/components/group-form";
+import { useConfirm } from "@/src/store/confirm-store";
 import GroupDetail from "@/src/components/group-detail";
 
-export default function GroupsView() {
+export function TaskGroups() {
   const groups = useAppStore((s) => s.groups);
   const addGroup = useAppStore((s) => s.addGroup);
   const updateGroup = useAppStore((s) => s.updateGroup);
@@ -44,15 +44,16 @@ export default function GroupsView() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-base font-bold uppercase tracking-wide text-fg-strong">
+        <h1 className="text-base font-bold uppercase text-foreground">
           Task groups
         </h1>
+
         <button
           onClick={() => {
             setEditing(null);
             setFormOpen(true);
           }}
-          className="flex cursor-pointer items-center gap-1.5 rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-accent-soft transition hover:bg-accent/20 active:scale-95"
+          className="flex items-center gap-1.5 rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase text-accent-soft hover:bg-accent/20"
         >
           <Plus size={20} /> New task group
         </button>
@@ -61,18 +62,21 @@ export default function GroupsView() {
       {groups.length === 0 ? (
         <motion.div
           {...fadeInUp}
-          className="cyber-clip border border-dashed border-border py-20 text-center"
+          className="cyber-clip border border-dashed border-accent py-20 text-center"
         >
-          <LayoutGrid className="mx-auto mb-3 text-fg-ghost" size={44} />
-          <p className="font-medium text-fg-label">
+          <LayoutGrid className="mx-auto mb-3 text-accent-soft" size={44} />
+
+          <p className="font-medium text-foreground">
             You don't have any task groups yet
           </p>
-          <p className="mb-4 text-sm text-fg-subtle">
+
+          <p className="mb-4 text-sm text-foreground-muted">
             Create your first task group to start organizing tasks.
           </p>
+
           <button
             onClick={() => setFormOpen(true)}
-            className="cursor-pointer rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-accent-soft transition hover:bg-accent/20 active:scale-95"
+            className="rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase text-accent-soft hover:bg-accent/20"
           >
             Create task group
           </button>
@@ -85,14 +89,14 @@ export default function GroupsView() {
               {...fadeInUp}
               transition={{ ...fadeInUp.transition, delay: i * 0.06 }}
             >
-              <GroupCard
+              <TaskCard
                 group={group}
-                onOpen={() => setOpenId(group.id)}
                 onEdit={() => {
                   setEditing(group);
                   setFormOpen(true);
                 }}
                 onDelete={() => askDelete(group)}
+                onOpen={() => setOpenId(group.id)}
               />
             </motion.div>
           ))}
