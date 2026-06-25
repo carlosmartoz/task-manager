@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { fadeIn } from "@/src/lib/motion";
-import { Header } from "@/src/app/header";
+import { Header } from "@/src/components/header";
 import { useTabStore } from "@/src/store/tab-store";
-import DailyView from "@/src/components/daily-view";
-import { TaskGroups } from "@/src/task-groups/task-groups";
-import ConfirmDialog from "@/src/components/confirm-dialog";
+import DailyView from "@/src/features/dailies/components/daily-view";
+import { TaskGroups } from "@/src/features/task-groups/components/task-groups";
 
 export function Page() {
   const tab = useTabStore((s) => s.tab);
@@ -20,8 +19,6 @@ export function Page() {
           {tab === "daily-tasks" && <DailyView />}
         </motion.div>
       </main>
-
-      <ConfirmDialog />
     </div>
   );
 }

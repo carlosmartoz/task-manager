@@ -1,56 +1,27 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Pencil, Plus, Sun, Trash2 } from "lucide-react";
 import { fadeInUp } from "@/src/lib/motion";
-import { useAppStore } from "@/src/store/app-store";
-import { useConfirm } from "@/src/store/confirm-store";
-import type { DailyTask } from "@/src/types";
-import { cn, dayKey } from "@/src/lib/utils";
+import { cn } from "@/src/lib/utils";
+import { useDailyView } from "@/src/features/dailies/hooks/use-daily-view";
 
 export default function DailyView() {
-  const dailies = useAppStore((s) => s.dailies);
-  const addDaily = useAppStore((s) => s.addDaily);
-  const renameDaily = useAppStore((s) => s.renameDaily);
-  const toggleDaily = useAppStore((s) => s.toggleDaily);
-  const deleteDaily = useAppStore((s) => s.deleteDaily);
-  const confirm = useConfirm();
-  const [draft, setDraft] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-
-  const startEdit = (d: DailyTask) => {
-    setEditingId(d.id);
-    setEditDraft(d.title);
-  };
-
-  const commitEdit = (d: DailyTask) => {
-    const next = editDraft.trim();
-    if (next && next !== d.title) renameDaily(d.id, next);
-    setEditingId(null);
-  };
-
-  const today = dayKey();
-  const isDone = (d: DailyTask) => d.completedOn === today;
-  const doneCount = dailies.filter(isDone).length;
-  const allDone = dailies.length > 0 && doneCount === dailies.length;
-
-  const add = (e: React.FormEvent) => {
-    e.preventDefault();
-    const title = draft.trim();
-    if (!title) return;
-    addDaily(title);
-    setDraft("");
-  };
-
-  const askDelete = async (d: DailyTask) => {
-    const ok = await confirm({
-      title: "Delete daily task?",
-      message: `"${d.title}" will be permanently removed.`,
-      confirmLabel: "Delete",
-      danger: true,
-    });
-    if (ok) deleteDaily(d.id);
-  };
+  const {
+    dailies,
+    draft,
+    setDraft,
+    editingId,
+    editDraft,
+    setEditDraft,
+    isDone,
+    doneCount,
+    allDone,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    add,
+    askDelete,
+    toggleDaily,
+  } = useDailyView();
 
   return (
     <div>
@@ -147,7 +118,7 @@ export default function DailyView() {
                       onBlur={() => commitEdit(d)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") commitEdit(d);
-                        if (e.key === "Escape") setEditingId(null);
+                        if (e.key === "Escape") cancelEdit();
                       }}
                       className="cyber-clip min-w-0 flex-1 border border-accent bg-surface-raised px-2 py-1 text-sm text-fg normal-case outline-none focus:ring-2 focus:ring-accent/30"
                     />

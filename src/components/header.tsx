@@ -1,5 +1,5 @@
-import { NavMobile } from "@/src/app/nav-mobile";
-import { NavDesktop } from "@/src/app/nav-desktop";
+import { NavMobile } from "@/src/components/nav-mobile";
+import { NavDesktop } from "@/src/components/nav-desktop";
 
 export function Header() {
   return (

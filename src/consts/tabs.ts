@@ -1,4 +1,4 @@
-import type { TabConfig } from "@/src/types";
+import type { TabConfig } from "@/src/types/tab";
 import { ListTodo, Repeat } from "lucide-react";
 
 export const TABS: TabConfig[] = [

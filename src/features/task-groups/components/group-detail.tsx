@@ -1,43 +1,24 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ListTodo, Plus } from "lucide-react";
 import { fadeIn, fadeInUp } from "@/src/lib/motion";
-import { useAppStore } from "@/src/store/app-store";
-import { useConfirm } from "@/src/store/confirm-store";
-import type { GroupDetailProps, Task } from "@/src/types";
 import { cn } from "@/src/lib/utils";
-import TaskItem from "@/src/components/task-item";
+import { useGroupDetail } from "@/src/features/task-groups/hooks/use-group-detail";
+import TaskItem from "@/src/features/task-groups/components/task-item";
+import type { GroupDetailProps } from "@/src/features/task-groups/types/types";
 
 export default function GroupDetail({ group, onBack }: GroupDetailProps) {
-  const addTask = useAppStore((s) => s.addTask);
-  const renameTask = useAppStore((s) => s.renameTask);
-  const toggleTask = useAppStore((s) => s.toggleTask);
-  const deleteTask = useAppStore((s) => s.deleteTask);
-  const confirm = useConfirm();
-  const [draft, setDraft] = useState("");
-
-  const done = group.tasks.filter((t) => t.done).length;
-  const total = group.tasks.length;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const allDone = total > 0 && done === total;
-
-  const add = (e: React.FormEvent) => {
-    e.preventDefault();
-    const title = draft.trim();
-    if (!title) return;
-    addTask(group.id, title);
-    setDraft("");
-  };
-
-  const askDelete = async (task: Task) => {
-    const ok = await confirm({
-      title: "Delete task?",
-      message: `"${task.title}" will be permanently removed.`,
-      confirmLabel: "Delete",
-      danger: true,
-    });
-    if (ok) deleteTask(group.id, task.id);
-  };
+  const {
+    draft,
+    setDraft,
+    done,
+    total,
+    pct,
+    allDone,
+    add,
+    askDelete,
+    renameTask,
+    toggleTask,
+  } = useGroupDetail(group);
 
   return (
     <motion.div {...fadeIn}>

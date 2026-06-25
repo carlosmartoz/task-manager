@@ -1,8 +1,8 @@
-import { cn } from "@/src/lib/utils";
 import { motion } from "framer-motion";
-import { TABS } from "@/src/constants";
-import { Brand } from "@/src/components/brand";
+import { cn } from "@/src/lib/utils";
+import { TABS } from "@/src/consts/tabs";
 import { useTabStore } from "@/src/store/tab-store";
+import { Brand } from "@/src/components/brand";
 
 export function NavDesktop() {
   const tab = useTabStore((s) => s.tab);
@@ -22,7 +22,7 @@ export function NavDesktop() {
               key={t.id}
               onClick={() => onChangeTab(t.id)}
               className={cn(
-                "relative flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium uppercase",
+                "relative flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-sm font-medium uppercase",
                 tab === t.id
                   ? "text-accent-soft"
                   : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground",

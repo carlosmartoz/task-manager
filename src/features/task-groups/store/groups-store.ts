@@ -1,26 +1,34 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AppStore, DailyTask, Group } from "@/src/types";
-import { dayKey, uid } from "@/src/lib/utils";
+import type { Group } from "@/src/features/task-groups/types/types";
+import { uid } from "@/src/lib/utils";
 
-const STORAGE_KEY = "taskmanager.core.v1";
+/** Store for the task-groups feature: groups and their tasks, persisted. */
+interface GroupsStore {
+  groups: Group[];
 
-export const useAppStore = create<AppStore>()(
+  // Grupos
+  addGroup: (title: string) => void;
+  updateGroup: (id: string, title: string) => void;
+  deleteGroup: (id: string) => void;
+
+  // Tareas dentro de un grupo
+  addTask: (groupId: string, title: string) => void;
+  renameTask: (groupId: string, taskId: string, title: string) => void;
+  toggleTask: (groupId: string, taskId: string) => void;
+  deleteTask: (groupId: string, taskId: string) => void;
+}
+
+export const useGroupsStore = create<GroupsStore>()(
   persist(
     (set) => ({
       groups: seedGroups(),
-      dailies: seedDailies(),
 
       addGroup: (title) =>
         set((s) => ({
           groups: [
             ...s.groups,
-            {
-              id: uid(),
-              title,
-              createdAt: new Date().toISOString(),
-              tasks: [],
-            },
+            { id: uid(), title, createdAt: new Date().toISOString(), tasks: [] },
           ],
         })),
 
@@ -88,42 +96,8 @@ export const useAppStore = create<AppStore>()(
               : g,
           ),
         })),
-
-      addDaily: (title) =>
-        set((s) => ({
-          dailies: [
-            ...s.dailies,
-            { id: uid(), title, createdAt: new Date().toISOString() },
-          ],
-        })),
-
-      renameDaily: (id, title) =>
-        set((s) => ({
-          dailies: s.dailies.map((d) => (d.id === id ? { ...d, title } : d)),
-        })),
-
-      toggleDaily: (id) =>
-        set((s) => {
-          const today = dayKey();
-          return {
-            dailies: s.dailies.map((d) =>
-              d.id === id
-                ? {
-                    ...d,
-                    completedOn: d.completedOn === today ? undefined : today,
-                  }
-                : d,
-            ),
-          };
-        }),
-
-      deleteDaily: (id) =>
-        set((s) => ({ dailies: s.dailies.filter((d) => d.id !== id) })),
     }),
-    {
-      name: STORAGE_KEY,
-      partialize: (s) => ({ groups: s.groups, dailies: s.dailies }),
-    },
+    { name: "taskmanager.groups.v1" },
   ),
 );
 
@@ -154,13 +128,5 @@ function seedGroups(): Group[] {
       createdAt: now,
       tasks: [mk("Finish the report"), mk("Reply to emails", true)],
     },
-  ];
-}
-
-function seedDailies(): DailyTask[] {
-  const now = new Date().toISOString();
-  return [
-    { id: uid(), title: "Drink 2L of water", createdAt: now },
-    { id: uid(), title: "Read 20 minutes", createdAt: now },
   ];
 }

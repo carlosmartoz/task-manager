@@ -1,4 +1,9 @@
-import type { Task } from "./task";
+export interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  createdAt: string;
+}
 
 export interface Group {
   id: string;
@@ -7,18 +12,18 @@ export interface Group {
   tasks: Task[];
 }
 
+export interface TaskItemProps {
+  task: Task;
+  onToggle: () => void;
+  onRename: (title: string) => void;
+  onDelete: () => void;
+}
+
 export interface GroupCardProps {
   group: Group;
   onOpen: () => void;
   onEdit: () => void;
   onDelete: () => void;
-}
-
-export interface GroupFormProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (title: string) => void;
-  group?: Group; // si se pasa, es edición
 }
 
 export interface GroupDetailProps {

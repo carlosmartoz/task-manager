@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Check, Circle, Pencil, Trash2 } from "lucide-react";
-import type { TaskItemProps } from "@/src/types";
 import { cn } from "@/src/lib/utils";
+import { useTaskItem } from "@/src/features/task-groups/hooks/use-task-item";
+import type { TaskItemProps } from "@/src/features/task-groups/types/types";
 
 export default function TaskItem({
   task,
@@ -9,15 +9,8 @@ export default function TaskItem({
   onRename,
   onDelete,
 }: TaskItemProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(task.title);
-
-  const commit = () => {
-    const next = draft.trim();
-    if (next && next !== task.title) onRename(next);
-    else setDraft(task.title);
-    setEditing(false);
-  };
+  const { editing, draft, setDraft, startEdit, cancelEdit, commit } =
+    useTaskItem({ task, onRename });
 
   return (
     <div
@@ -53,16 +46,13 @@ export default function TaskItem({
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") commit();
-            if (e.key === "Escape") {
-              setDraft(task.title);
-              setEditing(false);
-            }
+            if (e.key === "Escape") cancelEdit();
           }}
           className="cyber-clip min-w-0 flex-1 border border-accent bg-surface-raised px-2 py-1 text-sm text-fg normal-case outline-none focus:ring-2 focus:ring-accent/30"
         />
       ) : (
         <p
-          onDoubleClick={() => setEditing(true)}
+          onDoubleClick={startEdit}
           className={cn(
             "min-w-0 flex-1 cursor-pointer truncate text-sm normal-case leading-snug",
             task.done
@@ -77,7 +67,7 @@ export default function TaskItem({
       {!editing && (
         <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button
-            onClick={() => setEditing(true)}
+            onClick={startEdit}
             className="cursor-pointer rounded-sm p-1.5 text-fg-muted transition hover:bg-surface-raised hover:text-fg"
             aria-label="Edit"
           >

@@ -1,8 +1,8 @@
-import { cn } from "@/src/lib/utils";
 import { motion } from "framer-motion";
-import { TABS } from "@/src/constants";
-import { Brand } from "@/src/components/brand";
+import { cn } from "@/src/lib/utils";
+import { TABS } from "@/src/consts/tabs";
 import { useTabStore } from "@/src/store/tab-store";
+import { Brand } from "@/src/components/brand";
 
 export function NavMobile() {
   const tab = useTabStore((s) => s.tab);
@@ -24,7 +24,7 @@ export function NavMobile() {
             aria-label={t.label}
             onClick={() => onChangeTab(t.id)}
             className={cn(
-              "relative px-3 py-1.5 text-sm font-medium",
+              "relative cursor-pointer px-3 py-1.5 text-sm font-medium",
               tab === t.id
                 ? "text-accent-soft"
                 : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground",

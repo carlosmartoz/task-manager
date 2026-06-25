@@ -5,28 +5,14 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { slideDown } from "@/src/lib/motion";
-import type { GroupCardProps } from "@/src/types";
+import { useTaskCard } from "@/src/features/task-groups/hooks/use-task-card";
+import type { GroupCardProps } from "@/src/features/task-groups/types/types";
 
 export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
-  const [menu, setMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menu) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [menu]);
-
-  const total = group.tasks.length;
-  const done = group.tasks.filter((t) => t.done).length;
-  const pending = total - done;
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  const { menu, setMenu, menuRef, total, done, pending, pct } =
+    useTaskCard(group);
 
   return (
     <div
@@ -47,7 +33,7 @@ export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
           >
             <button
               onClick={() => setMenu((v) => !v)}
-              className="rounded-sm p-1 text-fg-muted transition hover:bg-surface-raised hover:text-fg"
+              className="cursor-pointer rounded-sm p-1 text-fg-muted transition hover:bg-surface-raised hover:text-fg"
               aria-label="Options"
             >
               <MoreVertical size={20} />
@@ -63,7 +49,7 @@ export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
                       setMenu(false);
                       onEdit();
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-fg-label transition hover:bg-surface-strong"
+                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm text-fg-label transition hover:bg-surface-strong"
                   >
                     <Pencil size={16} /> Edit
                   </button>
@@ -72,7 +58,7 @@ export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
                       setMenu(false);
                       onDelete();
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger-fg transition hover:bg-danger/10"
+                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm text-danger-fg transition hover:bg-danger/10"
                   >
                     <Trash2 size={16} /> Delete
                   </button>
