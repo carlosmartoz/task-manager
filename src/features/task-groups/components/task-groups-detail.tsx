@@ -1,12 +1,12 @@
-import { motion } from "framer-motion";
-import { ArrowLeft, ListTodo, Plus } from "lucide-react";
-import { fadeIn, fadeInUp } from "@/src/lib/motion";
 import { cn } from "@/src/lib/utils";
-import { useGroupDetail } from "@/src/features/task-groups/hooks/use-group-detail";
+import { motion } from "framer-motion";
+import { fadeIn, fadeInUp } from "@/src/lib/motion";
+import { ArrowLeft, ListTodo, Plus } from "lucide-react";
 import TaskItem from "@/src/features/task-groups/components/task-item";
-import type { GroupDetailProps } from "@/src/features/task-groups/types/types";
+import { useGroupDetail } from "@/src/features/task-groups/hooks/use-group-detail";
+import type { TaskGroupsDetailProps } from "@/src/features/task-groups/types/types";
 
-export default function GroupDetail({ group, onBack }: GroupDetailProps) {
+export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
   const {
     draft,
     setDraft,
@@ -18,7 +18,7 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
     askDelete,
     renameTask,
     toggleTask,
-  } = useGroupDetail(group);
+  } = useGroupDetail(taskGroup);
 
   return (
     <motion.div {...fadeIn}>
@@ -34,7 +34,7 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
           <span className="h-8 w-1.5 bg-accent" />
           <div className="flex-1">
             <h1 className="text-xl font-bold normal-case tracking-wide text-fg-strong">
-              {group.title}
+              {taskGroup.title}
             </h1>
             <p className="text-sm text-fg-muted normal-case">
               {total} {total === 1 ? "task" : "tasks"} · {done} done
@@ -104,12 +104,12 @@ export default function GroupDetail({ group, onBack }: GroupDetailProps) {
           </div>
 
           <div className="space-y-2">
-            {group.tasks.map((task) => (
+            {taskGroup.tasks.map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
-                onToggle={() => toggleTask(group.id, task.id)}
-                onRename={(title) => renameTask(group.id, task.id, title)}
+                onToggle={() => toggleTask(taskGroup.id, task.id)}
+                onRename={(title) => renameTask(taskGroup.id, task.id, title)}
                 onDelete={() => askDelete(task)}
               />
             ))}

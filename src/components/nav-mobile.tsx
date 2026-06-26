@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
 import { cn } from "@/src/lib/utils";
+import { motion } from "framer-motion";
 import { TABS } from "@/src/consts/tabs";
-import { useTabStore } from "@/src/store/tab-store";
 import { Brand } from "@/src/components/brand";
+import { useTabStore } from "@/src/store/tab-store";
 
 export function NavMobile() {
   const tab = useTabStore((s) => s.tab);

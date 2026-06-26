@@ -6,15 +6,15 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Colors */
-  --color-page: #07070b; /* app background */
-  --color-surface: #0e0f16; /* cards, panels, nav, modals */
+  --color-page: #07070b;
+  --color-surface: #0e0f16;
   --color-surface-hover: #161821; /* chips, inputs, 2nd-level bg */
 
   --color-surface-raised: #161821; /* chips, inputs, 2nd-level bg */
 
   --color-surface-strong: #20232f; /* selected chips, scrollbar */
 
-  --color-border: #1d2029; /* default borders */
+  --color-border: #1d2029;
 
   --color-border-strong: #2c303d; /* input / card borders */
   --color-border-muted: #3b404f; /* focus rings */

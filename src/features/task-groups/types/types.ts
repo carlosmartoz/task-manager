@@ -26,7 +26,7 @@ export interface GroupCardProps {
   onDelete: () => void;
 }
 
-export interface GroupDetailProps {
-  group: Group;
+export interface TaskGroupsDetailProps {
+  taskGroup: Group;
   onBack: () => void;
 }

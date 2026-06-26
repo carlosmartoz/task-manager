@@ -1,16 +1,17 @@
 import { motion } from "framer-motion";
-import { Plus, LayoutGrid } from "lucide-react";
 import { fadeInUp } from "@/src/lib/motion";
-import { useTaskGroups } from "@/src/features/task-groups/hooks/use-task-groups";
+import { Plus, LayoutGrid } from "lucide-react";
+import { Button } from "@/src/components/button";
 import { TaskCard } from "@/src/features/task-groups/components/task-card";
-import GroupDetail from "@/src/features/task-groups/components/group-detail";
+import { useTaskGroups } from "@/src/features/task-groups/hooks/use-task-groups";
+import { TaskGroupsDetail } from "@/src/features/task-groups/components/task-groups-detail";
 
 export function TaskGroups() {
   const { groups, active, openGroup, back, createGroup, editGroup, askDelete } =
     useTaskGroups();
 
   if (active) {
-    return <GroupDetail group={active} onBack={back} />;
+    return <TaskGroupsDetail taskGroup={active} onBack={back} />;
   }
 
   return (
@@ -20,12 +21,9 @@ export function TaskGroups() {
           Task groups
         </h1>
 
-        <button
-          onClick={createGroup}
-          className="flex cursor-pointer items-center gap-1.5 rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase text-accent-soft hover:bg-accent/20"
-        >
-          <Plus size={20} /> New task group
-        </button>
+        <Button icon={Plus} onClick={createGroup}>
+          New task group
+        </Button>
       </div>
 
       {groups.length === 0 ? (
@@ -33,7 +31,7 @@ export function TaskGroups() {
           {...fadeInUp}
           className="cyber-clip border border-dashed border-accent py-20 text-center"
         >
-          <LayoutGrid className="mx-auto mb-3 text-accent-soft" size={44} />
+          <LayoutGrid className="mx-auto mb-3 text-foreground" size={44} />
 
           <p className="font-medium text-foreground">
             You don't have any task groups yet
@@ -42,13 +40,6 @@ export function TaskGroups() {
           <p className="mb-4 text-sm text-foreground-muted">
             Create your first task group to start organizing tasks.
           </p>
-
-          <button
-            onClick={createGroup}
-            className="cursor-pointer rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase text-accent-soft hover:bg-accent/20"
-          >
-            Create task group
-          </button>
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
