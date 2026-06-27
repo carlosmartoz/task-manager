@@ -1,38 +1,51 @@
 import { useState } from "react";
-import { useGroupsStore } from "@/src/features/task-groups/store/groups-store";
-import type { Group } from "@/src/features/task-groups/types/types";
+import type { TaskGroup } from "@/src/features/task-groups/types/task-groups";
+import { useTaskGroupsStore } from "@/src/features/task-groups/store/task-groups";
 
-/** Orchestrates the task-groups screen: list, open/detail, create/edit and deletion. */
 export function useTaskGroups() {
-  const groups = useGroupsStore((s) => s.groups);
-  const addGroup = useGroupsStore((s) => s.addGroup);
-  const updateGroup = useGroupsStore((s) => s.updateGroup);
-  const deleteGroup = useGroupsStore((s) => s.deleteGroup);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const taskGroups = useTaskGroupsStore((s) => s.taskGroups);
 
-  const active = groups.find((g) => g.id === openId) ?? null;
+  const createTaskGroup = useTaskGroupsStore((s) => s.createTaskGroup);
 
-  const openGroup = (id: string) => setOpenId(id);
-  const back = () => setOpenId(null);
+  const editTaskGroup = useTaskGroupsStore((s) => s.editTaskGroup);
 
-  // TODO: los modales se quitaron temporalmente; por ahora usamos prompt/confirm
-  // nativos. Reemplazar por un modal propio cuando se reintroduzca el sistema.
-  const createGroup = () => {
+  const deleteTaskGroup = useTaskGroupsStore((s) => s.deleteTaskGroup);
+
+  const [open, setOpen] = useState<string | null>(null);
+
+  const active = taskGroups.find((g) => g.id === open) ?? null;
+
+  const onOpen = (id: string) => setOpen(id);
+
+  const onBack = () => setOpen(null);
+
+  const onCreate = () => {
     const title = window.prompt("New task group name")?.trim();
-    if (title) addGroup(title);
+
+    if (title) createTaskGroup(title);
   };
 
-  const editGroup = (group: Group) => {
+  const onEdit = (group: TaskGroup) => {
     const title = window.prompt("Edit task group name", group.title)?.trim();
-    if (title && title !== group.title) updateGroup(group.id, title);
+
+    if (title && title !== group.title) editTaskGroup(group.id, title);
   };
 
-  const askDelete = (group: Group) => {
+  const onDelete = (group: TaskGroup) => {
     const ok = window.confirm(
       `Delete "${group.title}" and all of its tasks? This cannot be undone.`,
     );
-    if (ok) deleteGroup(group.id);
+
+    if (ok) deleteTaskGroup(group.id);
   };
 
-  return { groups, active, openGroup, back, createGroup, editGroup, askDelete };
+  return {
+    taskGroups,
+    active,
+    onOpen,
+    onBack,
+    onCreate,
+    onEdit,
+    onDelete,
+  };
 }

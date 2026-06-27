@@ -1,49 +1,43 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { Group } from "@/src/features/task-groups/types/types";
 import { uid } from "@/src/lib/utils";
+import { persist } from "zustand/middleware";
+import type {
+  TaskGroup,
+  TaskGroupsStore,
+} from "@/src/features/task-groups/types/task-groups";
 
-/** Store for the task-groups feature: groups and their tasks, persisted. */
-interface GroupsStore {
-  groups: Group[];
-
-  // Grupos
-  addGroup: (title: string) => void;
-  updateGroup: (id: string, title: string) => void;
-  deleteGroup: (id: string) => void;
-
-  // Tareas dentro de un grupo
-  addTask: (groupId: string, title: string) => void;
-  renameTask: (groupId: string, taskId: string, title: string) => void;
-  toggleTask: (groupId: string, taskId: string) => void;
-  deleteTask: (groupId: string, taskId: string) => void;
-}
-
-export const useGroupsStore = create<GroupsStore>()(
+export const useTaskGroupsStore = create<TaskGroupsStore>()(
   persist(
     (set) => ({
-      groups: seedGroups(),
+      taskGroups: seedGroups(),
 
-      addGroup: (title) =>
+      createTaskGroup: (title) =>
         set((s) => ({
-          groups: [
-            ...s.groups,
-            { id: uid(), title, createdAt: new Date().toISOString(), tasks: [] },
+          taskGroups: [
+            ...s.taskGroups,
+            {
+              id: uid(),
+              title,
+              createdAt: new Date().toISOString(),
+              tasks: [],
+            },
           ],
         })),
 
-      updateGroup: (id, title) =>
+      editTaskGroup: (id, title) =>
         set((s) => ({
-          groups: s.groups.map((g) => (g.id === id ? { ...g, title } : g)),
+          taskGroups: s.taskGroups.map((g) =>
+            g.id === id ? { ...g, title } : g,
+          ),
         })),
 
-      deleteGroup: (id) =>
-        set((s) => ({ groups: s.groups.filter((g) => g.id !== id) })),
+      deleteTaskGroup: (id) =>
+        set((s) => ({ taskGroups: s.taskGroups.filter((g) => g.id !== id) })),
 
-      addTask: (groupId, title) =>
+      createTask: (taskGroupId, title) =>
         set((s) => ({
-          groups: s.groups.map((g) =>
-            g.id === groupId
+          taskGroups: s.taskGroups.map((g) =>
+            g.id === taskGroupId
               ? {
                   ...g,
                   tasks: [
@@ -60,10 +54,10 @@ export const useGroupsStore = create<GroupsStore>()(
           ),
         })),
 
-      renameTask: (groupId, taskId, title) =>
+      editTask: (taskGroupId, taskId, title) =>
         set((s) => ({
-          groups: s.groups.map((g) =>
-            g.id === groupId
+          taskGroups: s.taskGroups.map((g) =>
+            g.id === taskGroupId
               ? {
                   ...g,
                   tasks: g.tasks.map((t) =>
@@ -74,10 +68,10 @@ export const useGroupsStore = create<GroupsStore>()(
           ),
         })),
 
-      toggleTask: (groupId, taskId) =>
+      toggleTask: (taskGroupId, taskId) =>
         set((s) => ({
-          groups: s.groups.map((g) =>
-            g.id === groupId
+          taskGroups: s.taskGroups.map((g) =>
+            g.id === taskGroupId
               ? {
                   ...g,
                   tasks: g.tasks.map((t) =>
@@ -88,10 +82,10 @@ export const useGroupsStore = create<GroupsStore>()(
           ),
         })),
 
-      deleteTask: (groupId, taskId) =>
+      deleteTask: (taskGroupId, taskId) =>
         set((s) => ({
-          groups: s.groups.map((g) =>
-            g.id === groupId
+          taskGroups: s.taskGroups.map((g) =>
+            g.id === taskGroupId
               ? { ...g, tasks: g.tasks.filter((t) => t.id !== taskId) }
               : g,
           ),
@@ -101,8 +95,7 @@ export const useGroupsStore = create<GroupsStore>()(
   ),
 );
 
-/** Sample data for the very first launch. */
-function seedGroups(): Group[] {
+function seedGroups(): TaskGroup[] {
   const now = new Date().toISOString();
   const mk = (title: string, done = false) => ({
     id: uid(),

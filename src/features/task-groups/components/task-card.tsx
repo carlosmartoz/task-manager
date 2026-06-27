@@ -8,9 +8,14 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { slideDown } from "@/src/lib/motion";
 import { useTaskCard } from "@/src/features/task-groups/hooks/use-task-card";
-import type { GroupCardProps } from "@/src/features/task-groups/types/types";
+import type { TaskGroupCardProps } from "@/src/features/task-groups/types/task-groups";
 
-export function TaskCard({ group, onOpen, onEdit, onDelete }: GroupCardProps) {
+export function TaskCard({
+  group,
+  onOpen,
+  onEdit,
+  onDelete,
+}: TaskGroupCardProps) {
   const { menu, setMenu, menuRef, total, done, pending, pct } =
     useTaskCard(group);
 

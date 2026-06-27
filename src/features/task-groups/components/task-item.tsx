@@ -1,7 +1,7 @@
 import { Check, Circle, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { useTaskItem } from "@/src/features/task-groups/hooks/use-task-item";
-import type { TaskItemProps } from "@/src/features/task-groups/types/types";
+import type { TaskItemProps } from "@/src/features/task-groups/types/task-groups";
 
 export default function TaskItem({
   task,

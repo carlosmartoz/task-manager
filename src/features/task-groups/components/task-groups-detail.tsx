@@ -2,82 +2,81 @@ import { cn } from "@/src/lib/utils";
 import { motion } from "framer-motion";
 import { fadeIn, fadeInUp } from "@/src/lib/motion";
 import { ArrowLeft, ListTodo, Plus } from "lucide-react";
+import { Button } from "@/src/components/button";
+import { Input } from "@/src/components/input";
 import TaskItem from "@/src/features/task-groups/components/task-item";
-import { useGroupDetail } from "@/src/features/task-groups/hooks/use-group-detail";
-import type { TaskGroupsDetailProps } from "@/src/features/task-groups/types/types";
+import { useTaskGroupDetail } from "@/src/features/task-groups/hooks/use-task-group-detail";
+import type { TaskGroupsDetailProps } from "@/src/features/task-groups/types/task-groups";
 
 export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
   const {
-    draft,
-    setDraft,
+    pct,
     done,
     total,
-    pct,
+    draft,
     allDone,
-    add,
-    askDelete,
-    renameTask,
+    onCreate,
+    setDraft,
+    editTask,
+    onDelete,
     toggleTask,
-  } = useGroupDetail(taskGroup);
+  } = useTaskGroupDetail(taskGroup);
 
   return (
     <motion.div {...fadeIn}>
-      <button
-        onClick={onBack}
-        className="mb-4 flex cursor-pointer items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-fg-muted transition hover:text-fg"
-      >
-        <ArrowLeft size={18} /> Back to task groups
-      </button>
+      <Button icon={ArrowLeft} variant="ghost" onClick={onBack}>
+        Back to task groups
+      </Button>
 
-      <div className="cyber-clip mb-6 border border-border bg-surface p-5">
+      <div className="cyber-clip mb-6 mt-4 border border-border bg-surface p-5">
         <div className="flex items-center gap-3">
-          <span className="h-8 w-1.5 bg-accent" />
+          <span className="h-8 w-1 bg-accent" />
+
           <div className="flex-1">
-            <h1 className="text-xl font-bold normal-case tracking-wide text-fg-strong">
+            <h1 className="text-xl font-bold text-foreground">
               {taskGroup.title}
             </h1>
-            <p className="text-sm text-fg-muted normal-case">
+
+            <p className="text-sm text-foreground-muted">
               {total} {total === 1 ? "task" : "tasks"} · {done} done
             </p>
           </div>
         </div>
 
         <div className="mt-4">
-          <div className="h-1.5 overflow-hidden bg-surface-raised">
+          <div className="h-1 overflow-hidden bg-surface-raised">
             <div
               className="h-full bg-accent transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-1 text-right text-xs font-medium text-fg-subtle">
+
+          <p className="mt-2 text-right text-xs font-medium text-foreground-muted">
             {pct}% COMPLETE
           </p>
         </div>
       </div>
 
-      <form onSubmit={add} className="mb-4 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Add a task…"
-          className="cyber-clip min-w-0 flex-1 border border-border-strong bg-surface-raised px-3 py-3 text-sm text-fg placeholder-fg-subtle outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-        />
-        <button
-          type="submit"
-          className="flex cursor-pointer items-center gap-1.5 rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-accent-soft transition hover:bg-accent/20 active:scale-95"
-        >
-          <Plus size={20} /> Add
-        </button>
+      <form onSubmit={onCreate} className="mb-4 flex gap-2">
+        <Input value={draft} onChange={setDraft} placeholder="Add a task…" />
+
+        <Button icon={Plus} type="submit">
+          Add
+        </Button>
       </form>
 
       {total === 0 ? (
         <motion.div
           {...fadeInUp}
-          className="cyber-clip border border-dashed border-border py-16 text-center normal-case"
+          className="cyber-clip border border-dashed border-accent py-16 text-center normal-case"
         >
-          <ListTodo className="mx-auto mb-3 text-fg-ghost" size={40} />
-          <p className="font-medium text-fg-label">No tasks yet</p>
-          <p className="text-sm text-fg-subtle">Add your first task above.</p>
+          <ListTodo className="mx-auto mb-3 text-foreground" size={40} />
+
+          <p className="font-medium text-foreground">No tasks yet</p>
+
+          <p className="text-sm text-foreground-muted">
+            Add your first task above.
+          </p>
         </motion.div>
       ) : (
         <>
@@ -86,7 +85,7 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
               "cyber-clip mb-4 border px-4 py-3 text-sm normal-case",
               allDone
                 ? "border-accent/50 bg-accent/10 text-accent-soft"
-                : "border-border bg-surface text-fg-label",
+                : "border-border bg-surface text-foreground",
             )}
           >
             {allDone ? (
@@ -97,7 +96,7 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
               <>
                 You've completed{" "}
                 <span className="font-semibold text-accent">{done}</span> of{" "}
-                <span className="font-semibold text-fg-strong">{total}</span>{" "}
+                <span className="font-semibold text-foreground">{total}</span>{" "}
                 tasks.
               </>
             )}
@@ -106,11 +105,11 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
           <div className="space-y-2">
             {taskGroup.tasks.map((task) => (
               <TaskItem
-                key={task.id}
                 task={task}
+                key={task.id}
+                onDelete={() => onDelete(task)}
                 onToggle={() => toggleTask(taskGroup.id, task.id)}
-                onRename={(title) => renameTask(taskGroup.id, task.id, title)}
-                onDelete={() => askDelete(task)}
+                onRename={(title) => editTask(taskGroup.id, task.id, title)}
               />
             ))}
           </div>

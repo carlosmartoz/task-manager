@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { Group } from "@/src/features/task-groups/types/types";
+import type { TaskGroup } from "@/src/features/task-groups/types/task-groups";
 
 /** Dropdown menu (with outside-click close) and progress stats for a group card. */
-export function useTaskCard(group: Group) {
+export function useTaskCard(group: TaskGroup) {
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

@@ -7,11 +7,11 @@ import { useTaskGroups } from "@/src/features/task-groups/hooks/use-task-groups"
 import { TaskGroupsDetail } from "@/src/features/task-groups/components/task-groups-detail";
 
 export function TaskGroups() {
-  const { groups, active, openGroup, back, createGroup, editGroup, askDelete } =
+  const { taskGroups, active, onOpen, onBack, onCreate, onEdit, onDelete } =
     useTaskGroups();
 
   if (active) {
-    return <TaskGroupsDetail taskGroup={active} onBack={back} />;
+    return <TaskGroupsDetail taskGroup={active} onBack={onBack} />;
   }
 
   return (
@@ -21,17 +21,17 @@ export function TaskGroups() {
           Task groups
         </h1>
 
-        <Button icon={Plus} onClick={createGroup}>
+        <Button icon={Plus} onClick={onCreate}>
           New task group
         </Button>
       </div>
 
-      {groups.length === 0 ? (
+      {taskGroups.length === 0 ? (
         <motion.div
           {...fadeInUp}
           className="cyber-clip border border-dashed border-accent py-20 text-center"
         >
-          <LayoutGrid className="mx-auto mb-3 text-foreground" size={44} />
+          <LayoutGrid className="mx-auto mb-3 text-foreground" size={40} />
 
           <p className="font-medium text-foreground">
             You don't have any task groups yet
@@ -43,17 +43,17 @@ export function TaskGroups() {
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group, i) => (
+          {taskGroups.map((taskGroup, i) => (
             <motion.div
-              key={group.id}
+              key={taskGroup.id}
               {...fadeInUp}
               transition={{ ...fadeInUp.transition, delay: i * 0.06 }}
             >
               <TaskCard
-                group={group}
-                onEdit={() => editGroup(group)}
-                onDelete={() => askDelete(group)}
-                onOpen={() => openGroup(group.id)}
+                group={taskGroup}
+                onEdit={() => onEdit(taskGroup)}
+                onDelete={() => onDelete(taskGroup)}
+                onOpen={() => onOpen(taskGroup.id)}
               />
             </motion.div>
           ))}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TaskItemProps } from "@/src/features/task-groups/types/types";
+import type { TaskItemProps } from "@/src/features/task-groups/types/task-groups";
 
 /** Inline edit state for a single task row. */
 export function useTaskItem({
