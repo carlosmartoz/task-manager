@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, Pencil, Plus, Sun, Trash2 } from "lucide-react";
+import { Check, Plus, Sun, Trash2 } from "lucide-react";
 import { fadeInUp } from "@/src/lib/motion";
 import { cn } from "@/src/lib/utils";
 import { useDailyView } from "@/src/features/dailies/hooks/use-daily-view";
@@ -9,15 +9,9 @@ export default function DailyView() {
     dailies,
     draft,
     setDraft,
-    editingId,
-    editDraft,
-    setEditDraft,
     isDone,
     doneCount,
     allDone,
-    startEdit,
-    cancelEdit,
-    commitEdit,
     add,
     askDelete,
     toggleDaily,
@@ -110,50 +104,26 @@ export default function DailyView() {
                     <Check size={16} strokeWidth={3} />
                   </button>
 
-                  {editingId === d.id ? (
-                    <input
-                      autoFocus
-                      value={editDraft}
-                      onChange={(e) => setEditDraft(e.target.value)}
-                      onBlur={() => commitEdit(d)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitEdit(d);
-                        if (e.key === "Escape") cancelEdit();
-                      }}
-                      className="cyber-clip min-w-0 flex-1 border border-accent bg-surface-raised px-2 py-1 text-sm text-fg normal-case outline-none focus:ring-2 focus:ring-accent/30"
-                    />
-                  ) : (
-                    <p
-                      onDoubleClick={() => startEdit(d)}
-                      className={cn(
-                        "min-w-0 flex-1 cursor-pointer truncate text-sm normal-case",
-                        done
-                          ? "font-semibold tracking-wide text-accent-soft"
-                          : "font-medium text-fg",
-                      )}
-                    >
-                      {d.title}
-                    </p>
-                  )}
+                  <p
+                    className={cn(
+                      "min-w-0 flex-1 truncate text-sm normal-case",
+                      done
+                        ? "font-semibold tracking-wide text-accent-soft"
+                        : "font-medium text-fg",
+                    )}
+                  >
+                    {d.title}
+                  </p>
 
-                  {editingId !== d.id && (
-                    <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      <button
-                        onClick={() => startEdit(d)}
-                        className="cursor-pointer rounded-sm p-1.5 text-fg-muted transition hover:bg-surface-raised hover:text-fg"
-                        aria-label="Edit"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => askDelete(d)}
-                        className="cursor-pointer rounded-sm p-1.5 text-fg-muted transition hover:bg-danger/10 hover:text-danger-fg"
-                        aria-label="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <button
+                      onClick={() => askDelete(d)}
+                      className="cursor-pointer rounded-sm p-1.5 text-fg-muted transition hover:bg-danger/10 hover:text-danger-fg"
+                      aria-label="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               );
             })}

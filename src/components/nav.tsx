@@ -4,19 +4,19 @@ import { TABS } from "@/src/consts/tabs";
 import { Brand } from "@/src/components/brand";
 import { useTabStore } from "@/src/store/tab-store";
 
-export function NavMobile() {
+export function Nav() {
   const tab = useTabStore((s) => s.tab);
-
   const onChangeTab = useTabStore((s) => s.onChangeTab);
 
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-surface px-4 py-2 backdrop-blur lg:hidden">
-      <span className="mr-auto min-w-0">
+    <nav className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-surface px-4 py-2 lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:items-stretch lg:overflow-y-auto lg:border-b-0 lg:border-r lg:p-6">
+      <div className="mr-auto min-w-0 lg:mr-0">
         <Brand />
-      </span>
+      </div>
 
       {TABS.map((t) => {
         const Icon = t.icon;
+        const active = tab === t.id;
 
         return (
           <button
@@ -24,24 +24,26 @@ export function NavMobile() {
             aria-label={t.label}
             onClick={() => onChangeTab(t.id)}
             className={cn(
-              "relative cursor-pointer px-3 py-1.5 text-sm font-medium",
-              tab === t.id
+              "relative flex cursor-pointer items-center gap-3 px-3 py-1.5 text-sm font-medium uppercase lg:w-full lg:py-2.5",
+              active
                 ? "text-accent-soft"
-                : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground",
+                : "text-foreground-muted hover:bg-surface-hover/60 hover:text-foreground lg:hover:bg-surface-raised/60",
             )}
           >
-            {tab === t.id && (
+            {active && (
               <motion.span
-                layoutId="header-active-mobile"
-                className="absolute inset-0 -z-10 bg-accent/15"
+                layoutId="nav-active"
                 transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                className="absolute inset-0 -z-10 bg-accent/15 lg:border-l-4 lg:border-accent"
               />
             )}
 
             <Icon size={20} />
+
+            <span className="hidden lg:inline">{t.label}</span>
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

@@ -17,7 +17,6 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
     allDone,
     onCreate,
     setDraft,
-    editTask,
     onDelete,
     toggleTask,
   } = useTaskGroupDetail(taskGroup);
@@ -109,7 +108,6 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
                 key={task.id}
                 onDelete={() => onDelete(task)}
                 onToggle={() => toggleTask(taskGroup.id, task.id)}
-                onRename={(title) => editTask(taskGroup.id, task.id, title)}
               />
             ))}
           </div>

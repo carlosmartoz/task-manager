@@ -8,7 +8,6 @@ interface DailiesStore {
   dailies: DailyTask[];
 
   addDaily: (title: string) => void;
-  renameDaily: (id: string, title: string) => void;
   toggleDaily: (id: string) => void;
   deleteDaily: (id: string) => void;
 }
@@ -24,11 +23,6 @@ export const useDailiesStore = create<DailiesStore>()(
             ...s.dailies,
             { id: uid(), title, createdAt: new Date().toISOString() },
           ],
-        })),
-
-      renameDaily: (id, title) =>
-        set((s) => ({
-          dailies: s.dailies.map((d) => (d.id === id ? { ...d, title } : d)),
         })),
 
       toggleDaily: (id) =>

@@ -54,20 +54,6 @@ export const useTaskGroupsStore = create<TaskGroupsStore>()(
           ),
         })),
 
-      editTask: (taskGroupId, taskId, title) =>
-        set((s) => ({
-          taskGroups: s.taskGroups.map((g) =>
-            g.id === taskGroupId
-              ? {
-                  ...g,
-                  tasks: g.tasks.map((t) =>
-                    t.id === taskId ? { ...t, title } : t,
-                  ),
-                }
-              : g,
-          ),
-        })),
-
       toggleTask: (taskGroupId, taskId) =>
         set((s) => ({
           taskGroups: s.taskGroups.map((g) =>

@@ -8,8 +8,6 @@ import { useTaskGroupsStore } from "@/src/features/task-groups/store/task-groups
 export function useTaskGroupDetail(group: TaskGroup) {
   const createTask = useTaskGroupsStore((s) => s.createTask);
 
-  const editTask = useTaskGroupsStore((s) => s.editTask);
-
   const toggleTask = useTaskGroupsStore((s) => s.toggleTask);
 
   const deleteTask = useTaskGroupsStore((s) => s.deleteTask);
@@ -49,7 +47,6 @@ export function useTaskGroupDetail(group: TaskGroup) {
     total,
     allDone,
     setDraft,
-    editTask,
     onDelete,
     onCreate,
     toggleTask,

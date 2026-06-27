@@ -15,7 +15,6 @@ export interface TaskGroup {
 export interface TaskItemProps {
   task: Task;
   onToggle: () => void;
-  onRename: (title: string) => void;
   onDelete: () => void;
 }
 
@@ -39,7 +38,6 @@ export interface TaskGroupsStore {
   deleteTaskGroup: (id: string) => void;
 
   createTask: (taskGroupId: string, title: string) => void;
-  editTask: (taskGroupId: string, taskId: string, title: string) => void;
   toggleTask: (taskGroupId: string, taskId: string) => void;
   deleteTask: (taskGroupId: string, taskId: string) => void;
 }

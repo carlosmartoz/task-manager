@@ -1,12 +1,6 @@
 import { cn } from "@/src/lib/utils";
+import { BUTTON_VARIANTS } from "@/src/consts/button";
 import type { ButtonProps } from "@/src/types/button";
-
-const variants = {
-  solid:
-    "rounded-none border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-bold uppercase text-accent-soft hover:bg-accent/20",
-  ghost:
-    "text-xs font-medium uppercase tracking-wide text-foreground-muted transition hover:text-foreground",
-};
 
 export function Button({
   onClick,
@@ -21,7 +15,7 @@ export function Button({
       onClick={onClick}
       className={cn(
         "cursor-pointer",
-        variants[variant],
+        BUTTON_VARIANTS[variant],
         Icon && "flex items-center gap-1.5",
       )}
     >

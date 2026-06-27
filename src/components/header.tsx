@@ -1,12 +1,9 @@
-import { NavMobile } from "@/src/components/nav-mobile";
-import { NavDesktop } from "@/src/components/nav-desktop";
+import { Nav } from "@/src/components/nav";
 
 export function Header() {
   return (
     <header className="lg:shrink-0">
-      <NavDesktop />
-
-      <NavMobile />
+      <Nav />
     </header>
   );
 }
