@@ -1,7 +1,6 @@
-import { motion } from "framer-motion";
 import { Check, Plus, Sun, Trash2 } from "lucide-react";
-import { fadeInUp } from "@/src/lib/motion";
 import { cn } from "@/src/lib/utils";
+import { EmptyBox } from "@/src/components/empty-box";
 import { useDailyView } from "@/src/features/dailies/hooks/use-daily-view";
 
 export default function DailyView() {
@@ -41,16 +40,11 @@ export default function DailyView() {
       </form>
 
       {dailies.length === 0 ? (
-        <motion.div
-          {...fadeInUp}
-          className="cyber-clip border border-dashed border-border py-20 text-center"
-        >
-          <Sun className="mx-auto mb-3 text-fg-ghost" size={44} />
-          <p className="font-medium text-fg-label">No daily tasks yet</p>
-          <p className="text-sm text-fg-subtle">
-            Add your first daily task above.
-          </p>
-        </motion.div>
+        <EmptyBox
+          icon={Sun}
+          title="No daily tasks yet"
+          description="Add your first daily task above."
+        />
       ) : (
         <>
           <div

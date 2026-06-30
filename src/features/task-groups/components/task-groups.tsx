@@ -2,8 +2,9 @@ import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/motion";
 import { Plus, LayoutGrid } from "lucide-react";
 import { Button } from "@/src/components/button";
-import { TaskCard } from "@/src/features/task-groups/components/task-card";
+import { EmptyBox } from "@/src/components/empty-box";
 import { useTaskGroups } from "@/src/features/task-groups/hooks/use-task-groups";
+import { TaskGroupCard } from "@/src/features/task-groups/components/task-group-card";
 import { TaskGroupsDetail } from "@/src/features/task-groups/components/task-groups-detail";
 
 export function TaskGroups() {
@@ -27,20 +28,11 @@ export function TaskGroups() {
       </div>
 
       {taskGroups.length === 0 ? (
-        <motion.div
-          {...fadeInUp}
-          className="cyber-clip border border-dashed border-accent py-20 text-center"
-        >
-          <LayoutGrid className="mx-auto mb-3 text-foreground" size={40} />
-
-          <p className="font-medium text-foreground">
-            You don't have any task groups yet
-          </p>
-
-          <p className="mb-4 text-sm text-foreground-muted">
-            Create your first task group to start organizing tasks.
-          </p>
-        </motion.div>
+        <EmptyBox
+          icon={LayoutGrid}
+          title="You don't have any task groups yet"
+          description="Create your first task group to start organizing tasks."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {taskGroups.map((taskGroup, i) => (
@@ -49,11 +41,11 @@ export function TaskGroups() {
               {...fadeInUp}
               transition={{ ...fadeInUp.transition, delay: i * 0.06 }}
             >
-              <TaskCard
+              <TaskGroupCard
                 group={taskGroup}
                 onEdit={() => onEdit(taskGroup)}
-                onDelete={() => onDelete(taskGroup)}
                 onOpen={() => onOpen(taskGroup.id)}
+                onDelete={() => onDelete(taskGroup)}
               />
             </motion.div>
           ))}

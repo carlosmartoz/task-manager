@@ -18,7 +18,7 @@ export function useTaskGroupDetail(group: TaskGroup) {
 
   const total = group.tasks.length;
 
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  const completionPercent = total ? Math.round((done / total) * 100) : 0;
 
   const allDone = total > 0 && done === total;
 
@@ -41,7 +41,7 @@ export function useTaskGroupDetail(group: TaskGroup) {
   };
 
   return {
-    pct,
+    completionPercent,
     done,
     draft,
     total,

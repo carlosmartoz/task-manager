@@ -10,7 +10,7 @@ import type { TaskGroupsDetailProps } from "@/src/features/task-groups/types/tas
 
 export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
   const {
-    pct,
+    completionPercent,
     done,
     total,
     draft,
@@ -46,12 +46,12 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
           <div className="h-1 overflow-hidden bg-surface-raised">
             <div
               className="h-full bg-accent transition-all duration-500"
-              style={{ width: `${pct}%` }}
+              style={{ width: `${completionPercent}%` }}
             />
           </div>
 
           <p className="mt-2 text-right text-xs font-medium text-foreground-muted">
-            {pct}% COMPLETE
+            {completionPercent}% COMPLETE
           </p>
         </div>
       </div>

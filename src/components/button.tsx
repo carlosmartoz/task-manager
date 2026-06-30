@@ -5,7 +5,9 @@ import type { ButtonProps } from "@/src/types/button";
 export function Button({
   onClick,
   children,
+  ariaLabel,
   icon: Icon,
+  iconSize = 20,
   type = "button",
   variant = "solid",
 }: ButtonProps) {
@@ -13,13 +15,10 @@ export function Button({
     <button
       type={type}
       onClick={onClick}
-      className={cn(
-        "cursor-pointer",
-        BUTTON_VARIANTS[variant],
-        Icon && "flex items-center gap-1.5",
-      )}
+      aria-label={ariaLabel}
+      className={cn("cursor-pointer", BUTTON_VARIANTS[variant])}
     >
-      {Icon && <Icon size={20} />}
+      {Icon && <Icon size={iconSize} />}
 
       {children}
     </button>
