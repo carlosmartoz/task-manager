@@ -1,6 +1,7 @@
 import { Check, Plus, Sun, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { EmptyBox } from "@/src/components/empty-box";
+import { CompletionBanner } from "@/src/components/completion-banner";
 import { useDailyView } from "@/src/features/dailies/hooks/use-daily-view";
 
 export default function DailyView() {
@@ -47,30 +48,13 @@ export default function DailyView() {
         />
       ) : (
         <>
-          <div
-            className={cn(
-              "cyber-clip mb-4 border px-4 py-3 text-sm normal-case",
-              allDone
-                ? "border-accent/50 bg-accent/10 text-accent-soft"
-                : "border-border bg-surface text-fg-label",
-            )}
-          >
-            {allDone ? (
-              <span className="font-semibold uppercase tracking-wide">
-                All daily tasks cleared.
-              </span>
-            ) : (
-              <>
-                You've completed{" "}
-                <span className="font-semibold text-accent">{doneCount}</span>{" "}
-                of{" "}
-                <span className="font-semibold text-fg-strong">
-                  {dailies.length}
-                </span>{" "}
-                tasks today.
-              </>
-            )}
-          </div>
+          <CompletionBanner
+            done={doneCount}
+            total={dailies.length}
+            allDone={allDone}
+            clearedText="All daily tasks cleared."
+            unit="tasks today"
+          />
 
           <div className="space-y-2">
             {dailies.map((d) => {

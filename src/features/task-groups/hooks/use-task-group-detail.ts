@@ -7,19 +7,12 @@ import { useTaskGroupsStore } from "@/src/features/task-groups/store/task-groups
 
 export function useTaskGroupDetail(group: TaskGroup) {
   const createTask = useTaskGroupsStore((s) => s.createTask);
-
   const toggleTask = useTaskGroupsStore((s) => s.toggleTask);
-
   const deleteTask = useTaskGroupsStore((s) => s.deleteTask);
-
   const [draft, setDraft] = useState("");
-
   const done = group.tasks.filter((t) => t.done).length;
-
   const total = group.tasks.length;
-
   const completionPercent = total ? Math.round((done / total) * 100) : 0;
-
   const allDone = total > 0 && done === total;
 
   const onCreate = (e: React.FormEvent) => {

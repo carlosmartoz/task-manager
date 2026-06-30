@@ -1,8 +1,9 @@
-import { Check, Circle, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
+import { Button } from "@/src/components/button";
+import { Check, Circle, Trash2 } from "lucide-react";
 import type { TaskItemProps } from "@/src/features/task-groups/types/task-groups";
 
-export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
+export function TaskGroupItem({ task, onToggle, onDelete }: TaskItemProps) {
   return (
     <div
       className={cn(
@@ -16,7 +17,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         onClick={onToggle}
         title="Toggle done"
         className={cn(
-          "flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-90",
+          "flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2",
           task.done
             ? "border-accent bg-accent text-inverse"
             : "border-fg-faint text-transparent hover:border-accent",
@@ -31,23 +32,23 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
 
       <p
         className={cn(
-          "min-w-0 flex-1 truncate text-sm normal-case leading-snug",
+          "min-w-0 flex-1 text-sm",
           task.done
-            ? "font-semibold tracking-wide text-accent-soft"
-            : "font-medium text-fg",
+            ? "font-medium text-accent-soft"
+            : "font-medium text-foreground",
         )}
       >
         {task.title}
       </p>
 
       <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        <button
+        <Button
+          icon={Trash2}
+          iconSize={16}
+          variant="delete"
           onClick={onDelete}
-          className="cursor-pointer rounded-sm p-1.5 text-fg-muted transition hover:bg-danger/10 hover:text-danger-fg"
-          aria-label="Delete"
-        >
-          <Trash2 size={16} />
-        </button>
+          ariaLabel="Delete"
+        />
       </div>
     </div>
   );

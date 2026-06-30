@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/src/components/button";
 import { Dropdown } from "@/src/components/dropdown";
+import { ProgressBar } from "@/src/components/progress-bar";
 import type { TaskGroupCardProps } from "@/src/features/task-groups/types/task-groups";
 import { useTaskGroupCard } from "@/src/features/task-groups/hooks/use-task-group-card";
 
@@ -69,12 +70,7 @@ export function TaskGroupCard({
         </div>
 
         <div className="mt-4">
-          <div className="h-1 overflow-hidden bg-surface-raised">
-            <div
-              className="h-full bg-accent transition-all duration-500"
-              style={{ width: `${completionPercent}%` }}
-            />
-          </div>
+          <ProgressBar value={completionPercent} />
 
           <p className="mt-1.5 text-xs font-medium text-foreground-muted">
             {total === 0 ? "NO TASKS" : `${completionPercent}% COMPLETE`}

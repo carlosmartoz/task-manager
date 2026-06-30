@@ -6,4 +6,6 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   ghost:
     "flex items-center gap-1.5 text-xs font-medium uppercase text-foreground-muted transition hover:text-foreground",
   icon: "p-1 text-foreground-muted hover:bg-surface-raised hover:text-foreground",
+  delete:
+    "rounded-sm p-1.5 text-foreground-muted transition hover:bg-danger/10 hover:text-danger-fg",
 };
