@@ -3,8 +3,8 @@ import { fadeIn } from "@/src/lib/motion";
 import { Input } from "@/src/components/input";
 import { Button } from "@/src/components/button";
 import { EmptyBox } from "@/src/components/empty-box";
+import { PageHeader } from "@/src/components/page-header";
 import { ArrowLeft, ListTodo, Plus } from "lucide-react";
-import { ProgressBar } from "@/src/components/progress-bar";
 import { CompletionBanner } from "@/src/components/completion-banner";
 import { TaskGroupItem } from "@/src/features/task-groups/components/task-group-item";
 import type { TaskGroupsDetailProps } from "@/src/features/task-groups/types/task-groups";
@@ -29,28 +29,12 @@ export function TaskGroupsDetail({ taskGroup, onBack }: TaskGroupsDetailProps) {
         Back to task groups
       </Button>
 
-      <div className="cyber-clip mb-6 mt-4 border border-border bg-surface p-5">
-        <div className="flex items-center gap-3">
-          <span className="h-8 w-1 bg-accent" />
-
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">
-              {taskGroup.title}
-            </h1>
-
-            <p className="text-sm text-foreground-muted">
-              {total} {total === 1 ? "task" : "tasks"} · {done} done
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <ProgressBar value={completionPercent} />
-
-          <p className="mt-2 text-right text-xs font-medium text-foreground-muted">
-            {completionPercent}% COMPLETE
-          </p>
-        </div>
+      <div className="mb-6 mt-4">
+        <PageHeader
+          title={taskGroup.title}
+          subtitle={`${total} ${total === 1 ? "task" : "tasks"} · ${done} done`}
+          completionPercent={completionPercent}
+        />
       </div>
 
       <form onSubmit={onCreate} className="mb-4 flex gap-2">

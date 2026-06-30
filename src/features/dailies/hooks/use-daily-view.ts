@@ -15,6 +15,9 @@ export function useDailyView() {
   const isDone = (d: DailyTask) => d.completedOn === today;
   const doneCount = dailies.filter(isDone).length;
   const allDone = dailies.length > 0 && doneCount === dailies.length;
+  const completionPercent = dailies.length
+    ? Math.round((doneCount / dailies.length) * 100)
+    : 0;
 
   const add = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +39,7 @@ export function useDailyView() {
     isDone,
     doneCount,
     allDone,
+    completionPercent,
     add,
     askDelete,
     toggleDaily,

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { fadeIn } from "@/src/lib/motion";
 import { Header } from "@/src/components/header";
 import { useTabStore } from "@/src/store/tab-store";
-import DailyView from "@/src/features/dailies/components/daily-view";
+import { DailyTasks } from "@/src/features/dailies/components/daily-tasks";
 import { TaskGroups } from "@/src/features/task-groups/components/task-groups";
 
 export function Page() {
@@ -16,7 +16,7 @@ export function Page() {
         <motion.div key={tab} {...fadeIn}>
           {tab === "task-groups" && <TaskGroups />}
 
-          {tab === "daily-tasks" && <DailyView />}
+          {tab === "daily-tasks" && <DailyTasks />}
         </motion.div>
       </main>
     </div>
