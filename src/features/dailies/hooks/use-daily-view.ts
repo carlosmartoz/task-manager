@@ -9,6 +9,7 @@ export function useDailyView() {
   const addDaily = useDailiesStore((s) => s.addDaily);
   const toggleDaily = useDailiesStore((s) => s.toggleDaily);
   const deleteDaily = useDailiesStore((s) => s.deleteDaily);
+  const clearDone = useDailiesStore((s) => s.clearDone);
   const [draft, setDraft] = useState("");
 
   const today = dayKey();
@@ -32,6 +33,11 @@ export function useDailyView() {
     if (ok) deleteDaily(d.id);
   };
 
+  const askClearDone = () => {
+    const ok = window.confirm("Clear done status from all daily tasks?");
+    if (ok) clearDone();
+  };
+
   return {
     dailies,
     draft,
@@ -42,6 +48,7 @@ export function useDailyView() {
     completionPercent,
     add,
     askDelete,
+    askClearDone,
     toggleDaily,
   };
 }

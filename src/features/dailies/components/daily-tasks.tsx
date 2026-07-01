@@ -1,4 +1,4 @@
-import { Plus, Sun } from "lucide-react";
+import { Plus, RotateCcw, Sun } from "lucide-react";
 import { Input } from "@/src/components/input";
 import { Button } from "@/src/components/button";
 import { EmptyBox } from "@/src/components/empty-box";
@@ -17,6 +17,7 @@ export function DailyTasks() {
     setDraft,
     doneCount,
     askDelete,
+    askClearDone,
     toggleDaily,
     completionPercent,
   } = useDailyView();
@@ -54,6 +55,19 @@ export function DailyTasks() {
             clearedText="All daily tasks cleared."
             unit="tasks today"
           />
+
+          {doneCount > 0 && (
+            <div className="mb-3 flex justify-end">
+              <Button
+                variant="ghost"
+                icon={RotateCcw}
+                iconSize={14}
+                onClick={askClearDone}
+              >
+                Clear done
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-2">
             {dailies.map((d) => (

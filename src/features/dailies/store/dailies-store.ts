@@ -10,6 +10,7 @@ interface DailiesStore {
   addDaily: (title: string) => void;
   toggleDaily: (id: string) => void;
   deleteDaily: (id: string) => void;
+  clearDone: () => void;
 }
 
 export const useDailiesStore = create<DailiesStore>()(
@@ -42,6 +43,16 @@ export const useDailiesStore = create<DailiesStore>()(
 
       deleteDaily: (id) =>
         set((s) => ({ dailies: s.dailies.filter((d) => d.id !== id) })),
+
+      clearDone: () =>
+        set((s) => {
+          const today = dayKey();
+          return {
+            dailies: s.dailies.map((d) =>
+              d.completedOn === today ? { ...d, completedOn: undefined } : d,
+            ),
+          };
+        }),
     }),
     { name: "taskmanager.dailies.v1" },
   ),
