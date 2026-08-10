@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
-import { Check, Pencil, Trash2, X } from 'lucide-react'
+import { IconCheck, IconPencil, IconTrash, IconX } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -64,7 +64,7 @@ export function TaskItem({ task, onToggle, onEdit, onRemove }: TaskItemProps) {
               disabled={!draft.trim()}
               aria-label="Guardar cambios"
             >
-              <Check />
+              <IconCheck />
             </Button>
             <Button
               size="icon-sm"
@@ -72,7 +72,7 @@ export function TaskItem({ task, onToggle, onEdit, onRemove }: TaskItemProps) {
               onClick={cancel}
               aria-label="Cancelar edición"
             >
-              <X />
+              <IconX />
             </Button>
           </div>
         </>
@@ -81,7 +81,7 @@ export function TaskItem({ task, onToggle, onEdit, onRemove }: TaskItemProps) {
           <span
             onClick={() => onToggle(task.id)}
             className={cn(
-              'flex-1 cursor-pointer text-sm break-words',
+              'flex-1 cursor-pointer text-sm wrap-break-word',
               task.done && 'text-muted-foreground line-through',
             )}
           >
@@ -94,7 +94,7 @@ export function TaskItem({ task, onToggle, onEdit, onRemove }: TaskItemProps) {
               onClick={startEditing}
               aria-label={`Editar "${task.title}"`}
             >
-              <Pencil />
+              <IconPencil />
             </Button>
             <Button
               size="icon-sm"
@@ -103,7 +103,7 @@ export function TaskItem({ task, onToggle, onEdit, onRemove }: TaskItemProps) {
               aria-label={`Eliminar "${task.title}"`}
               className="text-muted-foreground hover:text-destructive"
             >
-              <Trash2 />
+              <IconTrash />
             </Button>
           </div>
         </>

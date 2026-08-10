@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { IconPlus } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,7 +27,7 @@ export function TaskInput({ onAdd }: TaskInputProps) {
         className="h-10"
       />
       <Button type="submit" size="lg" disabled={!title.trim()} className="h-10">
-        <Plus />
+        <IconPlus />
         Añadir
       </Button>
     </form>
