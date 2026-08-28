@@ -1,10 +1,31 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Daily Task Manager</title>
+    <script>
+      // Aplica el tema antes del primer pintado para evitar el parpadeo claro.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('daily-task-manager:theme') || 'system'
+          var dark =
+            stored === 'dark' ||
+            (stored === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (error) {
+          // Sin localStorage se queda en claro hasta que React aplique el tema.
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

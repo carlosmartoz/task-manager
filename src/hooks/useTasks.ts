@@ -1,61 +1,50 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { getTodayKey } from '@/lib/date'
-import type { Task } from '@/types/task'
+import { loadState, saveState } from '@/lib/storage'
+import {
+  advanceProgress,
+  applyDailyReset,
+  clamp,
+  moveItem,
+  normalizeTarget,
+} from '@/lib/tasks'
+import type { Task, TasksState, Weekday } from '@/types/task'
 
-const STORAGE_KEY = 'daily-task-manager:v1'
 const DAY_CHECK_INTERVAL = 30_000
+const UNDO_TIMEOUT = 6_000
 
-type TasksState = {
-  tasks: Task[]
-  lastResetDate: string
+export type NewTask = {
+  title: string
+  target?: number
+  weekdays?: Weekday[]
 }
 
-function emptyState(): TasksState {
-  return { tasks: [], lastResetDate: getTodayKey() }
+export type TaskPatch = {
+  title?: string
+  target?: number
+  weekdays?: Weekday[]
 }
 
-/**
- * Las tareas son recurrentes: se conservan de un día para otro, pero al
- * cambiar el día se les quita el estado de completada.
- */
-function applyDailyReset(state: TasksState): TasksState {
-  const today = getTodayKey()
-  if (state.lastResetDate === today) return state
-
-  return {
-    lastResetDate: today,
-    tasks: state.tasks.map((task) => ({ ...task, done: false })),
-  }
-}
-
-function loadState(): TasksState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return emptyState()
-
-    const parsed = JSON.parse(raw) as Partial<TasksState>
-    if (!Array.isArray(parsed.tasks)) return emptyState()
-
-    return applyDailyReset({
-      tasks: parsed.tasks,
-      lastResetDate: parsed.lastResetDate ?? getTodayKey(),
-    })
-  } catch {
-    return emptyState()
-  }
+/** Tarea eliminada que todavía se puede recuperar, con su posición original. */
+export type PendingUndo = {
+  task: Task
+  index: number
 }
 
 export function useTasks() {
-  const [state, setState] = useState<TasksState>(loadState)
+  const [state, setState] = useState<TasksState>(() =>
+    applyDailyReset(loadState()),
+  )
+  const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null)
+  const undoTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    saveState(state)
   }, [state])
 
   // Detecta el cambio de día con la pestaña abierta y al volver a ella.
   useEffect(() => {
-    const check = () => setState(applyDailyReset)
+    const check = () => setState((prev) => applyDailyReset(prev))
 
     const interval = window.setInterval(check, DAY_CHECK_INTERVAL)
     window.addEventListener('focus', check)
@@ -68,47 +57,157 @@ export function useTasks() {
     }
   }, [])
 
-  const addTask = useCallback((title: string) => {
-    const trimmed = title.trim()
-    if (!trimmed) return
+  useEffect(() => () => window.clearTimeout(undoTimer.current), [])
 
-    const task: Task = {
-      id: crypto.randomUUID(),
-      title: trimmed,
-      done: false,
-      createdAt: Date.now(),
-    }
-
-    setState((prev) => ({ ...prev, tasks: [...prev.tasks, task] }))
+  const dismissUndo = useCallback(() => {
+    window.clearTimeout(undoTimer.current)
+    undoTimer.current = undefined
+    setPendingUndo(null)
   }, [])
 
-  const editTask = useCallback((id: string, title: string) => {
-    const trimmed = title.trim()
-    if (!trimmed) return
+  const updateTask = useCallback(
+    (id: string, update: (task: Task) => Task) => {
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) => (task.id === id ? update(task) : task)),
+      }))
+    },
+    [],
+  )
 
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === id ? { ...task, title: trimmed } : task,
-      ),
-    }))
+  const addTask = useCallback(
+    ({ title, target = 1, weekdays = [] }: NewTask) => {
+      const trimmed = title.trim()
+      if (!trimmed) return
+
+      const task: Task = {
+        id: crypto.randomUUID(),
+        title: trimmed,
+        target: normalizeTarget(target),
+        progress: 0,
+        weekdays: [...weekdays].sort(),
+        createdAt: Date.now(),
+      }
+
+      setState((prev) => ({ ...prev, tasks: [...prev.tasks, task] }))
+    },
+    [],
+  )
+
+  const editTask = useCallback(
+    (id: string, patch: TaskPatch) => {
+      updateTask(id, (task) => {
+        const title = patch.title === undefined ? task.title : patch.title.trim()
+        if (!title) return task
+
+        const target =
+          patch.target === undefined ? task.target : normalizeTarget(patch.target)
+
+        return {
+          ...task,
+          title,
+          target,
+          // Bajar la meta no puede dejar el progreso por encima de ella.
+          progress: clamp(task.progress, 0, target),
+          weekdays:
+            patch.weekdays === undefined
+              ? task.weekdays
+              : [...patch.weekdays].sort(),
+        }
+      })
+    },
+    [updateTask],
+  )
+
+  const advanceTask = useCallback(
+    (id: string) => {
+      updateTask(id, (task) => ({ ...task, progress: advanceProgress(task) }))
+    },
+    [updateTask],
+  )
+
+  const decrementTask = useCallback(
+    (id: string) => {
+      updateTask(id, (task) => ({
+        ...task,
+        progress: Math.max(task.progress - 1, 0),
+      }))
+    },
+    [updateTask],
+  )
+
+  /**
+   * Intercambia dos tareas por id, no por posición: quien llama conoce el orden
+   * que se está viendo, que puede tener tareas ocultas por no tocar hoy.
+   */
+  const swapTasks = useCallback((id: string, otherId: string) => {
+    setState((prev) => {
+      const from = prev.tasks.findIndex((task) => task.id === id)
+      const to = prev.tasks.findIndex((task) => task.id === otherId)
+      if (from === -1 || to === -1) return prev
+
+      const tasks = moveItem(prev.tasks, from, to)
+      return tasks === prev.tasks ? prev : { ...prev, tasks }
+    })
   }, [])
 
-  const toggleTask = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task,
-      ),
-    }))
-  }, [])
+  const removeTask = useCallback(
+    (id: string) => {
+      const index = state.tasks.findIndex((task) => task.id === id)
+      if (index === -1) return
 
-  const removeTask = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.filter((task) => task.id !== id),
-    }))
-  }, [])
+      const task = state.tasks[index]
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.filter((candidate) => candidate.id !== id),
+      }))
 
-  return { tasks: state.tasks, addTask, editTask, toggleTask, removeTask }
+      window.clearTimeout(undoTimer.current)
+      setPendingUndo({ task, index })
+      undoTimer.current = window.setTimeout(
+        () => setPendingUndo(null),
+        UNDO_TIMEOUT,
+      )
+    },
+    [state.tasks],
+  )
+
+  const undoRemove = useCallback(() => {
+    if (!pendingUndo) return
+
+    const { task, index } = pendingUndo
+    setState((prev) => {
+      if (prev.tasks.some((candidate) => candidate.id === task.id)) return prev
+
+      const tasks = [...prev.tasks]
+      tasks.splice(Math.min(index, tasks.length), 0, task)
+      return { ...prev, tasks }
+    })
+
+    dismissUndo()
+  }, [pendingUndo, dismissUndo])
+
+  const replaceState = useCallback(
+    (next: TasksState) => {
+      setState(applyDailyReset(next))
+      dismissUndo()
+    },
+    [dismissUndo],
+  )
+
+  return {
+    tasks: state.tasks,
+    history: state.history,
+    state,
+    pendingUndo,
+    addTask,
+    editTask,
+    advanceTask,
+    decrementTask,
+    swapTasks,
+    removeTask,
+    undoRemove,
+    dismissUndo,
+    replaceState,
+  }
 }
