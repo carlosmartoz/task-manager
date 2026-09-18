@@ -3,6 +3,10 @@
 export const MIN_TARGET = 1
 export const MAX_TARGET = 99
 
+// Where a streak starts being worth a colour of its own.
+export const STREAK_WEEK = 7
+export const STREAK_MONTH = 30
+
 // Days of history kept; beyond that it adds nothing and bloats `localStorage`.
 export const HISTORY_DAYS = 180
 

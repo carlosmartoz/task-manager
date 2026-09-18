@@ -1,7 +1,13 @@
-import { HISTORY_DAYS, MAX_TARGET, MIN_TARGET } from '@/lib/config'
+import {
+  HISTORY_DAYS,
+  MAX_TARGET,
+  MIN_TARGET,
+  STREAK_MONTH,
+  STREAK_WEEK,
+} from '@/lib/config'
 import { addDays, endOfDay, getTodayKey } from '@/lib/date'
 import { getWeekday, isScheduledOn } from '@/lib/weekdays'
-import type { DayKey, Task, TasksState, Weekday } from '@/types'
+import type { DayKey, StreakTier, Task, TasksState, Weekday } from '@/types'
 
 // `done` derives from `progress`; as a field it would allow the impossible
 // state "done with 3 of 8".
@@ -54,6 +60,14 @@ export function splitByWeekday(tasks: Task[], weekday: Weekday) {
   return {
     today: tasks.filter((task) => isScheduledOn(task, weekday)),
     others: tasks.filter((task) => !isScheduledOn(task, weekday)),
+  }
+}
+
+// Habits and one-offs live in separate lists, keeping the manual order.
+export function splitByRepeat(tasks: Task[]) {
+  return {
+    habits: tasks.filter((task) => task.repeats),
+    oneOffs: tasks.filter((task) => !task.repeats),
   }
 }
 
@@ -139,6 +153,14 @@ export function computeGlobalStreak(
   }
 
   return streak
+}
+
+// How much a streak stands out: none, just started, a week or a month.
+export function streakTier(streak: number): StreakTier {
+  if (streak <= 0) return 'none'
+  if (streak < STREAK_WEEK) return 'started'
+  if (streak < STREAK_MONTH) return 'week'
+  return 'month'
 }
 
 // On a day change what was met is archived and progress resets. If the day has

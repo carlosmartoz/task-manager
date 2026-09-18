@@ -10,6 +10,8 @@ import {
   normalizeTarget,
   pruneHistory,
   scheduleOf,
+  splitByRepeat,
+  streakTier,
 } from '@/lib/tasks'
 import type { Task, TasksState } from '@/types'
 
@@ -80,6 +82,32 @@ describe('pruneHistory', () => {
   it('drops the days outside the window', () => {
     const history = { '2024-01-07': ['task-1'], '2020-01-01': ['task-1'] }
     expect(pruneHistory(history, MONDAY)).toEqual({ '2024-01-07': ['task-1'] })
+  })
+})
+
+describe('streakTier', () => {
+  it('grows with the streak, and nothing below one day', () => {
+    expect(streakTier(0)).toBe('none')
+    expect(streakTier(1)).toBe('started')
+    expect(streakTier(6)).toBe('started')
+    expect(streakTier(7)).toBe('week')
+    expect(streakTier(29)).toBe('week')
+    expect(streakTier(30)).toBe('month')
+  })
+})
+
+describe('splitByRepeat', () => {
+  it('separates habits from one-offs, keeping the order', () => {
+    const tasks = [
+      makeTask({ id: 'a' }),
+      makeTask({ id: 'b', repeats: false }),
+      makeTask({ id: 'c' }),
+    ]
+
+    const { habits, oneOffs } = splitByRepeat(tasks)
+
+    expect(habits.map((task) => task.id)).toEqual(['a', 'c'])
+    expect(oneOffs.map((task) => task.id)).toEqual(['b'])
   })
 })
 

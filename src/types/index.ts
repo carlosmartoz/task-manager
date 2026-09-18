@@ -4,6 +4,7 @@
 export type { DayKey } from '@/types/DayKey'
 export type { NewTask } from '@/types/NewTask'
 export type { PendingUndo } from '@/types/PendingUndo'
+export type { StreakTier } from '@/types/StreakTier'
 export type { Task } from '@/types/Task'
 export type { TaskPatch } from '@/types/TaskPatch'
 export type { TasksState } from '@/types/TasksState'

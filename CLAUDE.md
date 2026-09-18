@@ -30,7 +30,7 @@ Tabler icons · Vitest. PWA with a hand-written manifest and service worker.
 src/
   components/
     ui/       shadcn generated; do not reformat
-    tasks/    TaskInput, TaskList, TaskItem, TaskProgress, WeekdayPicker
+    tasks/    TaskForm, TaskList, TaskItem, TaskProgress, WeekdayPicker
     shell/    DataActions, UndoToast
   hooks/      useTasks (state), useTaskForm, useBackup
   lib/        config, date, weekdays, tasks, storage, download, utils

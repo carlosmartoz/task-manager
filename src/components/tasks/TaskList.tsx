@@ -1,16 +1,18 @@
 import { useState } from 'react'
 
 import { TaskItem } from '@/components/tasks/TaskItem'
-import type { Task, TaskPatch } from '@/types'
+import type { Task } from '@/types'
 
 type TaskListProps = {
   tasks: Task[]
   // Streak by task id; the ones missing render without a streak.
   streaks: Record<string, number>
   dimmed?: boolean
+  // The task the form is editing right now, if it is in this list.
+  editingId?: string | null
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
-  onEdit: (id: string, patch: TaskPatch) => void
+  onStartEdit: (id: string) => void
   onSwap: (id: string, otherId: string) => void
   onRemove: (id: string) => void
 }
@@ -19,9 +21,10 @@ export function TaskList({
   tasks,
   streaks,
   dimmed,
+  editingId,
   onAdvance,
   onDecrement,
-  onEdit,
+  onStartEdit,
   onSwap,
   onRemove,
 }: TaskListProps) {
@@ -52,11 +55,12 @@ export function TaskList({
             task={task}
             streak={streaks[task.id] ?? 0}
             dimmed={dimmed}
+            isEditing={editingId === task.id}
             isDragging={draggingId === task.id}
             isDragOver={overId === task.id && draggingId !== task.id}
             onAdvance={onAdvance}
             onDecrement={onDecrement}
-            onEdit={onEdit}
+            onStartEdit={onStartEdit}
             onMoveUp={previous ? () => onSwap(task.id, previous.id) : undefined}
             onMoveDown={next ? () => onSwap(task.id, next.id) : undefined}
             onRemove={onRemove}

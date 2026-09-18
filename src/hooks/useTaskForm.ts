@@ -14,13 +14,13 @@ type Draft = {
 // because the input can sit empty while someone types.
 export function useTaskForm(initial: Draft = {}) {
   const [title, setTitle] = useState(initial.title ?? '')
-  const [repeats, setRepeats] = useState(initial.repeats ?? true)
+  const [repeats, setRepeats] = useState(initial.repeats ?? false)
   const [target, setTarget] = useState(String(initial.target ?? MIN_TARGET))
   const [weekdays, setWeekdays] = useState<Weekday[]>(initial.weekdays ?? [])
 
   function reset(next: Draft = {}) {
     setTitle(next.title ?? '')
-    setRepeats(next.repeats ?? true)
+    setRepeats(next.repeats ?? false)
     setTarget(String(next.target ?? MIN_TARGET))
     setWeekdays(next.weekdays ?? [])
   }

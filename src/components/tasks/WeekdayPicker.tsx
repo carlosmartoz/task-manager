@@ -5,9 +5,14 @@ import type { Weekday } from '@/types'
 type WeekdayPickerProps = {
   value: Weekday[]
   onChange: (weekdays: Weekday[]) => void
+  disabled?: boolean
 }
 
-export function WeekdayPicker({ value, onChange }: WeekdayPickerProps) {
+export function WeekdayPicker({
+  value,
+  onChange,
+  disabled,
+}: WeekdayPickerProps) {
   const selected = selectedWeekdays(value)
 
   return (
@@ -24,10 +29,11 @@ export function WeekdayPicker({ value, onChange }: WeekdayPickerProps) {
             key={day}
             type="button"
             onClick={() => onChange(toggleWeekday(value, day))}
+            disabled={disabled}
             aria-pressed={active}
             aria-label={long}
             className={cn(
-              'rounded-lg py-2 text-xs font-semibold transition focus-visible:ring-2 focus-visible:ring-subtle-foreground/40 focus-visible:outline-none',
+              'rounded-lg py-2 text-xs font-semibold transition focus-visible:ring-2 focus-visible:ring-subtle-foreground/40 focus-visible:outline-none disabled:cursor-not-allowed',
               active
                 ? 'bg-primary text-primary-foreground shadow'
                 : 'text-muted-foreground hover:text-foreground',

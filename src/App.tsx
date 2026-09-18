@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { IconChecklist, IconFlame } from '@tabler/icons-react'
 
 import { DataActions } from '@/components/shell/DataActions'
 import { UndoToast } from '@/components/shell/UndoToast'
-import { TaskInput } from '@/components/tasks/TaskInput'
+import { TaskForm } from '@/components/tasks/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
 import { useTasks } from '@/hooks/useTasks'
 import { formatLongDate } from '@/lib/date'
@@ -11,9 +11,11 @@ import {
   computeGlobalStreak,
   computeStreak,
   isTaskDone,
+  splitByRepeat,
   splitByWeekday,
 } from '@/lib/tasks'
 import { getWeekday } from '@/lib/weekdays'
+import type { TaskPatch } from '@/types'
 
 function App() {
   const {
@@ -29,13 +31,19 @@ function App() {
     dismissUndo,
     replaceState,
   } = useTasks()
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const { tasks, history } = state
+  // A task deleted while being edited simply sends the form back to creating.
+  const editing = tasks.find((task) => task.id === editingId)
   const { today: todayTasks, others: otherTasks } = splitByWeekday(
     tasks,
     getWeekday(),
   )
-  const completed = todayTasks.filter(isTaskDone).length
+  // A one-off is always due, so it gets its own card instead of today's.
+  const { habits, oneOffs } = splitByRepeat(todayTasks)
+  const completed = habits.filter(isTaskDone).length
+  const completedOneOffs = oneOffs.filter(isTaskDone).length
 
   const streaks = useMemo(
     () =>
@@ -49,21 +57,27 @@ function App() {
     [tasks, history],
   )
 
+  function saveEdit(id: string, patch: TaskPatch) {
+    editTask(id, patch)
+    setEditingId(null)
+  }
+
   const listProps = {
     streaks,
+    editingId,
     onAdvance: advanceTask,
     onDecrement: decrementTask,
-    onEdit: editTask,
+    onStartEdit: setEditingId,
     onSwap: swapTasks,
     onRemove: removeTask,
   }
 
   return (
     <main className="min-h-svh p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <div className="mx-auto flex max-w-6xl flex-col gap-5">
         <header className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-bold tracking-tight">Today's tasks</h1>
+            <h1 className="text-xl font-bold tracking-tight">Tasks</h1>
             <p className="text-sm text-muted-foreground">{formatLongDate()}</p>
           </div>
 
@@ -82,14 +96,22 @@ function App() {
         </header>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
-          <section className="card h-fit min-w-0 p-5 lg:sticky lg:top-8">
-            <h2 className="mb-4 text-lg font-bold">New task</h2>
-            <TaskInput onAdd={addTask} />
+          <section className="card h-fit min-w-0 p-4 sm:p-5 lg:sticky lg:top-8">
+            <h2 className="mb-4 text-lg font-bold">
+              {editing ? 'Edit task' : 'New task'}
+            </h2>
+            <TaskForm
+              key={editing?.id ?? 'new'}
+              editing={editing}
+              onAdd={addTask}
+              onSave={saveEdit}
+              onCancel={() => setEditingId(null)}
+            />
           </section>
 
           <div className="min-w-0 space-y-5">
             {tasks.length === 0 ? (
-              <section className="card flex flex-col items-center gap-4 p-12 text-center">
+              <section className="card flex flex-col items-center gap-4 p-8 text-center sm:p-12">
                 <span className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
                   <IconChecklist className="size-7" />
                 </span>
@@ -111,26 +133,41 @@ function App() {
                 </p>
               </section>
             ) : (
-              <section className="card p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-bold">Today</h2>
-                  <p className="text-sm text-subtle-foreground">
-                    {completed} of {todayTasks.length} done
-                  </p>
-                </div>
-
-                {todayTasks.length === 0 ? (
-                  <div className="mt-3 grid place-items-center rounded-2xl border border-dashed border-border py-12 text-center text-sm text-subtle-foreground">
-                    Nothing is due today. Enjoy the day.
+              <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+                <section className="card h-fit min-w-0 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-lg font-bold">Repetitive tasks</h2>
+                    <p className="text-sm text-subtle-foreground">
+                      {completed} of {habits.length} done
+                    </p>
                   </div>
-                ) : (
-                  <TaskList tasks={todayTasks} {...listProps} />
+
+                  {habits.length === 0 ? (
+                    <div className="mt-3 grid place-items-center rounded-2xl border border-dashed border-border py-12 text-center text-sm text-subtle-foreground">
+                      Nothing is due today. Enjoy the day.
+                    </div>
+                  ) : (
+                    <TaskList tasks={habits} {...listProps} />
+                  )}
+                </section>
+
+                {oneOffs.length > 0 && (
+                  <section className="card h-fit min-w-0 p-4 sm:p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-lg font-bold">Unique tasks</h2>
+                      <p className="text-sm text-subtle-foreground">
+                        {completedOneOffs} of {oneOffs.length} done
+                      </p>
+                    </div>
+
+                    <TaskList tasks={oneOffs} {...listProps} />
+                  </section>
                 )}
-              </section>
+              </div>
             )}
 
             {otherTasks.length > 0 && (
-              <section className="card p-5">
+              <section className="card min-w-0 p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">Other days</h2>
                   <p className="text-sm text-subtle-foreground">

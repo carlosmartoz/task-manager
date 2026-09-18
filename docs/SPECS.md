@@ -126,11 +126,9 @@ Guaranteed in the hook and in `lib/`, never in the components:
 ```
 main.tsx  ── registers the service worker in production
 └── App.tsx ────────── useTasks()  ← the single source of truth
-    ├── tasks/TaskInput ──── useTaskForm
+    ├── tasks/TaskForm ───── useTaskForm      (creates and edits)
     │                     └─ tasks/WeekdayPicker
     ├── tasks/TaskList ───── tasks/TaskItem ─── tasks/TaskProgress
-    │                                        ├─ tasks/WeekdayPicker
-    │                                        └─ useTaskForm
     ├── shell/DataActions ── useBackup   (export / import)
     └── shell/UndoToast
 ```
@@ -249,6 +247,17 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - **Known limitation:** HTML5 dragging does not fire on touch, so on a phone the order can
   only be changed with a keyboard.
 
+### 5.3.1 Creating and editing
+
+- **One form for both**, `TaskForm`, in the card on the left: it says *New task* or *Edit
+  task*, and editing is started with the pencil of the row, which highlights it. Editing
+  in the row itself was dropped: the row had to hold a second copy of the form and got
+  cramped as the options grew.
+- The form is remounted per task (`key`), so a half-written draft never leaks from one
+  task to the next.
+- **A new task does not repeat by default.** The repeat options stay on screen while the
+  checkbox is off, only dimmed and disabled, so the form never changes height.
+
 ### 5.4 Undo deletion
 
 - Deleting asks for no confirmation, but for **6 seconds** a notice appears with *Undo*,
@@ -272,7 +281,13 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 
 - **Per task:** consecutive days meeting it, counting back from today. Days it was not due
   are skipped without breaking it, and **an unfinished current day does not break it
-  either**: there is still time. It shows next to the title from 1 day up.
+  either**: there is still time. It shows under the title, together with the days, and is
+  always on screen — a zero streak is information too.
+- **Tiers** (`streakTier`, tested): `none` at zero keeps the muted colour of the rest of
+  the line, `started` turns it white, `week` (7 days) warm and `month` (30) warmer. Four
+  steps, no gradient: the colour has to mean something at a glance.
+- A one-off task has no streak at all, and no line under the title either: which card it
+  is in already says what it is.
 - **Global:** consecutive days completing *every* task that was due. It shows in the
   header.
 - **A known and accepted approximation:** for past days, the global streak is rebuilt from
