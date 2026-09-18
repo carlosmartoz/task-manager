@@ -13,19 +13,20 @@ export function UndoToast({ title, onUndo, onDismiss }: UndoToastProps) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-lg animate-in fade-in slide-in-from-bottom-2"
+      className="card fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center gap-2 p-3 animate-in fade-in slide-in-from-bottom-2"
     >
-      <p className="min-w-0 flex-1 truncate text-sm">
-        Tarea eliminada: {title}
+      <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+        Task deleted:{' '}
+        <span className="font-medium text-foreground">{title}</span>
       </p>
-      <Button size="sm" variant="secondary" onClick={onUndo}>
-        Deshacer
+      <Button size="sm" variant="outline" onClick={onUndo}>
+        Undo
       </Button>
       <Button
         size="icon-sm"
         variant="ghost"
         onClick={onDismiss}
-        aria-label="Descartar aviso"
+        aria-label="Dismiss notice"
       >
         <IconX />
       </Button>

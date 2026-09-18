@@ -1,71 +1,79 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type DragEvent, type KeyboardEvent } from 'react'
 import {
   IconCheck,
-  IconChevronDown,
-  IconChevronUp,
   IconFlame,
+  IconGripVertical,
   IconMinus,
   IconPencil,
+  IconPlus,
   IconTrash,
   IconX,
 } from '@tabler/icons-react'
 
-import { TaskProgress } from '@/components/TaskProgress'
-import { WeekdayPicker } from '@/components/WeekdayPicker'
+import { TaskProgress } from '@/components/tasks/TaskProgress'
+import { WeekdayPicker } from '@/components/tasks/WeekdayPicker'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import type { TaskPatch } from '@/hooks/useTasks'
-import { formatWeekdays } from '@/lib/date'
+import { useTaskForm } from '@/hooks/useTaskForm'
+import { MAX_TARGET, MIN_TARGET } from '@/lib/config'
 import { isTaskDone } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
-import { MAX_TARGET, MIN_TARGET, type Task, type Weekday } from '@/types/task'
+import { formatWeekdays } from '@/lib/weekdays'
+import type { Task, TaskPatch } from '@/types'
 
 type TaskItemProps = {
   task: Task
   streak: number
-  /** La tarea no toca hoy: se muestra apagada y sin control de progreso. */
+  // The task is not due today: shown dimmed and without the progress control.
   dimmed?: boolean
+  // The task being dragged right now, and the one it would land on.
+  isDragging?: boolean
+  isDragOver?: boolean
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
   onEdit: (id: string, patch: TaskPatch) => void
-  /** Ausente cuando la tarea ya es la primera de la lista visible. */
+  // Absent when the task is already first in the visible list.
   onMoveUp?: () => void
-  /** Ausente cuando la tarea ya es la última de la lista visible. */
+  // Absent when the task is already last in the visible list.
   onMoveDown?: () => void
   onRemove: (id: string) => void
+  onDragStart: () => void
+  onDragEnter: () => void
+  onDragEnd: () => void
+  onDrop: () => void
 }
 
 export function TaskItem({
   task,
   streak,
   dimmed = false,
+  isDragging = false,
+  isDragOver = false,
   onAdvance,
   onDecrement,
   onEdit,
   onMoveUp,
   onMoveDown,
   onRemove,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDrop,
 }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [title, setTitle] = useState(task.title)
-  const [target, setTarget] = useState(String(task.target))
-  const [weekdays, setWeekdays] = useState<Weekday[]>(task.weekdays)
+  const form = useTaskForm(task)
 
   const done = isTaskDone(task)
+  const counter = task.target > 1
 
   function startEditing() {
-    setTitle(task.title)
-    setTarget(String(task.target))
-    setWeekdays(task.weekdays)
+    form.reset(task)
     setIsEditing(true)
   }
 
   function save() {
-    onEdit(task.id, {
-      title,
-      target: Number(target) || MIN_TARGET,
-      weekdays,
-    })
+    onEdit(task.id, form.values)
     setIsEditing(false)
   }
 
@@ -78,52 +86,79 @@ export function TaskItem({
     if (event.key === 'Escape') cancel()
   }
 
+  // Reordering without a mouse: the grip moves the task with the arrow keys.
+  function handleGripKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'ArrowUp' && onMoveUp) {
+      event.preventDefault()
+      onMoveUp()
+    }
+    if (event.key === 'ArrowDown' && onMoveDown) {
+      event.preventDefault()
+      onMoveDown()
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLLIElement>) {
+    event.preventDefault()
+    onDrop()
+  }
+
   return (
     <li
+      draggable={!isEditing}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
+      onDragEnd={onDragEnd}
       className={cn(
-        'group flex items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 transition-colors hover:bg-muted/40',
+        'group flex items-center gap-3 py-3 transition-colors',
         dimmed && 'opacity-60',
+        isDragging && 'opacity-40',
+        isDragOver && 'bg-muted/50',
       )}
     >
-      {dimmed ? (
-        <span className="mt-1 size-4 shrink-0 rounded-full border border-dashed border-border" />
-      ) : (
-        <div className="mt-0.5">
+      <span className="flex w-12 shrink-0 items-center">
+        {dimmed ? (
+          <span className="size-4.5 rounded-md border border-dashed border-border-strong" />
+        ) : (
           <TaskProgress
             task={task}
             onAdvance={() => onAdvance(task.id)}
             disabled={isEditing}
           />
-        </div>
-      )}
+        )}
+      </span>
 
       {isEditing ? (
-        <div className="flex flex-1 flex-col gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex items-center gap-2">
             <Input
               autoFocus
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              value={form.title}
+              onChange={(event) => form.setTitle(event.target.value)}
               onKeyDown={handleKeyDown}
-              aria-label="Editar tarea"
+              aria-label="Edit task"
             />
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={MIN_TARGET}
-              max={MAX_TARGET}
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-              onKeyDown={handleKeyDown}
-              aria-label="Repeticiones al día"
-              className="w-16"
-            />
+            {form.repeats && (
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={MIN_TARGET}
+                max={MAX_TARGET}
+                value={form.target}
+                onChange={(event) => form.setTarget(event.target.value)}
+                onKeyDown={handleKeyDown}
+                aria-label="Repetitions per day"
+                className="w-20"
+              />
+            )}
             <Button
               size="icon-sm"
               variant="ghost"
               onClick={save}
-              disabled={!title.trim()}
-              aria-label="Guardar cambios"
+              disabled={!form.isValid}
+              aria-label="Save changes"
             >
               <IconCheck />
             </Button>
@@ -131,21 +166,28 @@ export function TaskItem({
               size="icon-sm"
               variant="ghost"
               onClick={cancel}
-              aria-label="Cancelar edición"
+              aria-label="Cancel editing"
             >
               <IconX />
             </Button>
           </div>
 
-          <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+          <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox checked={form.repeats} onCheckedChange={form.setRepeats} />
+            Repeats every day
+          </label>
+
+          {form.repeats && (
+            <WeekdayPicker value={form.weekdays} onChange={form.setWeekdays} />
+          )}
         </div>
       ) : (
         <>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 flex-1 flex-col">
             <span
               onClick={() => !dimmed && onAdvance(task.id)}
               className={cn(
-                'text-sm wrap-break-word',
+                'text-sm font-medium wrap-break-word text-foreground',
                 !dimmed && 'cursor-pointer',
                 done && 'text-muted-foreground line-through',
               )}
@@ -153,58 +195,56 @@ export function TaskItem({
               {task.title}
             </span>
 
-            {(streak > 0 || task.weekdays.length > 0) && (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            {(streak > 0 || !task.repeats || task.weekdays.length > 0) && (
+              <p className="mt-0.5 flex items-center gap-2 truncate text-xs text-muted-foreground">
                 {streak > 0 && (
                   <span
-                    className="flex items-center gap-0.5"
-                    title={`Racha de ${streak} ${streak === 1 ? 'día' : 'días'}`}
+                    className="flex items-center gap-1 font-semibold tabular-nums"
+                    title={`${streak}-day streak`}
                   >
-                    <IconFlame className="size-3.5" />
+                    <IconFlame className="size-4" />
                     {streak}
                   </span>
                 )}
-                {task.weekdays.length > 0 && (
-                  <span>{formatWeekdays(task.weekdays)}</span>
+                {!task.repeats ? (
+                  <span>Once</span>
+                ) : (
+                  task.weekdays.length > 0 && (
+                    <span>{formatWeekdays(task.weekdays)}</span>
+                  )
                 )}
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-            {!dimmed && task.target > 1 && task.progress > 0 && (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={() => onDecrement(task.id)}
-                aria-label={`Restar una a "${task.title}"`}
-              >
-                <IconMinus />
-              </Button>
+          <div className="flex shrink-0 items-center gap-0.5 transition sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+            {!dimmed && counter && (
+              <>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => onDecrement(task.id)}
+                  disabled={task.progress === 0}
+                  aria-label={`Subtract one from "${task.title}"`}
+                >
+                  <IconMinus />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => onAdvance(task.id)}
+                  disabled={done}
+                  aria-label={`Add one to "${task.title}"`}
+                >
+                  <IconPlus />
+                </Button>
+              </>
             )}
             <Button
               size="icon-sm"
               variant="ghost"
-              onClick={onMoveUp}
-              disabled={!onMoveUp}
-              aria-label={`Subir "${task.title}"`}
-            >
-              <IconChevronUp />
-            </Button>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={onMoveDown}
-              disabled={!onMoveDown}
-              aria-label={`Bajar "${task.title}"`}
-            >
-              <IconChevronDown />
-            </Button>
-            <Button
-              size="icon-sm"
-              variant="ghost"
               onClick={startEditing}
-              aria-label={`Editar "${task.title}"`}
+              aria-label={`Edit "${task.title}"`}
             >
               <IconPencil />
             </Button>
@@ -212,10 +252,18 @@ export function TaskItem({
               size="icon-sm"
               variant="ghost"
               onClick={() => onRemove(task.id)}
-              aria-label={`Eliminar "${task.title}"`}
-              className="text-muted-foreground hover:text-destructive"
+              aria-label={`Delete "${task.title}"`}
             >
               <IconTrash />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onKeyDown={handleGripKeyDown}
+              aria-label={`Reorder "${task.title}". Use the arrow keys`}
+              className="cursor-grab active:cursor-grabbing"
+            >
+              <IconGripVertical />
             </Button>
           </div>
         </>

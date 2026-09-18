@@ -1,25 +1,12 @@
-import { addDays, endOfDay, getTodayKey, getWeekday } from '@/lib/date'
-import {
-  HISTORY_DAYS,
-  MAX_TARGET,
-  MIN_TARGET,
-  type DayKey,
-  type Task,
-  type TasksState,
-  type Weekday,
-} from '@/types/task'
+import { HISTORY_DAYS, MAX_TARGET, MIN_TARGET } from '@/lib/config'
+import { addDays, endOfDay, getTodayKey } from '@/lib/date'
+import { getWeekday, isScheduledOn } from '@/lib/weekdays'
+import type { DayKey, Task, TasksState, Weekday } from '@/types'
 
-/**
- * `done` no se almacena: se deriva de `progress`. Guardarlo como campo aparte
- * permitiría el estado imposible «completada con 3 de 8».
- */
+// `done` derives from `progress`; as a field it would allow the impossible
+// state "done with 3 of 8".
 export function isTaskDone(task: Task): boolean {
   return task.progress >= task.target
-}
-
-/** Una tarea sin días marcados toca todos los días. */
-export function isScheduledOn(task: Task, weekday: Weekday): boolean {
-  return task.weekdays.length === 0 || task.weekdays.includes(weekday)
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -31,19 +18,30 @@ export function normalizeTarget(value: number): number {
   return clamp(Math.round(value), MIN_TARGET, MAX_TARGET)
 }
 
-/**
- * Un único gesto para todo el ciclo: suma una repetición y, una vez alcanzada
- * la meta, el siguiente avance vuelve a cero. Con `target: 1` equivale a
- * marcar y desmarcar un checkbox.
- */
+// A one-off carries no schedule and no counter: both belong to a habit.
+export function scheduleOf(
+  repeats: boolean,
+  target: number,
+  weekdays: Weekday[],
+): { target: number; weekdays: Weekday[] } {
+  if (!repeats) return { target: MIN_TARGET, weekdays: [] }
+
+  return { target: normalizeTarget(target), weekdays: [...weekdays].sort() }
+}
+
+// One gesture for the whole cycle: add one and, once the target is met, reset.
 export function advanceProgress(task: Task): number {
   return isTaskDone(task) ? 0 : task.progress + 1
 }
 
+export function progressPercent(task: Task): number {
+  return Math.round((task.progress / task.target) * 100)
+}
+
+// Returns the same array when the move changes nothing.
 export function moveItem<T>(items: T[], from: number, to: number): T[] {
-  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
-    return items
-  }
+  const outOfRange = from < 0 || to < 0 || from >= items.length || to >= items.length
+  if (from === to || outOfRange) return items
 
   const result = [...items]
   const [moved] = result.splice(from, 1)
@@ -51,7 +49,15 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
   return result
 }
 
-/** Descarta los días que ya caen fuera de la ventana de historial. */
+// Splits what is due today from what is not, keeping the manual order.
+export function splitByWeekday(tasks: Task[], weekday: Weekday) {
+  return {
+    today: tasks.filter((task) => isScheduledOn(task, weekday)),
+    others: tasks.filter((task) => !isScheduledOn(task, weekday)),
+  }
+}
+
+// Drops the days that fall outside the history window.
 export function pruneHistory(
   history: Record<DayKey, string[]>,
   today: Date = new Date(),
@@ -63,16 +69,16 @@ export function pruneHistory(
   )
 }
 
-/**
- * Días consecutivos cumpliendo la tarea, hacia atrás desde hoy. Los días en que
- * no tocaba se saltan sin romperla, y el día en curso tampoco la rompe mientras
- * siga sin completarse: aún hay tiempo.
- */
+// Consecutive days meeting the task, counting back from today. Days it was not
+// due are skipped, and today never breaks it: there is still time.
 export function computeStreak(
   task: Task,
   history: Record<DayKey, string[]>,
   today: Date = new Date(),
 ): number {
+  // A one-off is done once: there is no chain of days to count.
+  if (!task.repeats) return 0
+
   let streak = 0
 
   for (let offset = 0; offset < HISTORY_DAYS; offset++) {
@@ -97,11 +103,8 @@ export function computeStreak(
   return streak
 }
 
-/**
- * Días consecutivos completando *todas* las tareas que tocaban. Para los días
- * pasados se reconstruye con las tareas que existen hoy: una tarea eliminada ya
- * no cuenta hacia atrás.
- */
+// Consecutive days completing every task that was due. The past is rebuilt from
+// today's tasks: a deleted one no longer counts backwards.
 export function computeGlobalStreak(
   tasks: Task[],
   history: Record<DayKey, string[]>,
@@ -115,7 +118,8 @@ export function computeGlobalStreak(
     const weekday = getWeekday(date)
 
     const due = tasks.filter(
-      (task) => task.createdAt <= limit && isScheduledOn(task, weekday),
+      (task) =>
+        task.repeats && task.createdAt <= limit && isScheduledOn(task, weekday),
     )
     if (due.length === 0) continue
 
@@ -137,11 +141,8 @@ export function computeGlobalStreak(
   return streak
 }
 
-/**
- * Las tareas son recurrentes: se conservan de un día para otro, pero al cambiar
- * el día se archiva lo cumplido y el progreso vuelve a cero. Devuelve el mismo
- * objeto si no ha cambiado el día, para no provocar renderizados de más.
- */
+// On a day change what was met is archived and progress resets. If the day has
+// not changed it returns the same object, to avoid extra renders.
 export function applyDailyReset(
   state: TasksState,
   today: Date = new Date(),
@@ -149,10 +150,15 @@ export function applyDailyReset(
   const todayKey = getTodayKey(today)
   if (state.lastResetDate === todayKey) return state
 
-  const completedIds = state.tasks.filter(isTaskDone).map((task) => task.id)
+  const completedIds = state.tasks
+    .filter((task) => task.repeats && isTaskDone(task))
+    .map((task) => task.id)
 
   return {
-    tasks: state.tasks.map((task) => ({ ...task, progress: 0 })),
+    // A one-off that was met is finished: it does not come back tomorrow.
+    tasks: state.tasks
+      .filter((task) => task.repeats || !isTaskDone(task))
+      .map((task) => ({ ...task, progress: 0 })),
     lastResetDate: todayKey,
     history: pruneHistory(
       { ...state.history, [state.lastResetDate]: completedIds },

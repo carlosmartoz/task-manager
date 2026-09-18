@@ -1,49 +1,24 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useRef, type ChangeEvent } from 'react'
 import { IconDownload, IconUpload } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
-import { backupFilename, parseBackup, serializeBackup } from '@/lib/storage'
-import type { TasksState } from '@/types/task'
+import { useBackup } from '@/hooks/useBackup'
+import type { TasksState } from '@/types'
 
 type DataActionsProps = {
   state: TasksState
   onImport: (state: TasksState) => void
 }
 
-/**
- * Los datos solo viven en este navegador: si el usuario limpia el sitio, los
- * pierde. Exportar e importar es el único respaldo que tiene.
- */
 export function DataActions({ state, onImport }: DataActionsProps) {
-  const [error, setError] = useState<string | null>(null)
+  const { error, exportBackup, importBackup } = useBackup(state, onImport)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  function handleExport() {
-    setError(null)
-
-    const blob = new Blob([serializeBackup(state)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-
-    link.href = url
-    link.download = backupFilename()
-    link.click()
-    // Revocar de forma síncrona puede cancelar la descarga en algunos navegadores.
-    setTimeout(() => URL.revokeObjectURL(url), 0)
-  }
-
-  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
+  function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
-    // Permite volver a elegir el mismo archivo tras un error.
+    // Lets the same file be picked again after an error.
     event.target.value = ''
-    if (!file) return
-
-    try {
-      onImport(parseBackup(await file.text()))
-      setError(null)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo leer el archivo.')
-    }
+    if (file) importBackup(file)
   }
 
   return (
@@ -52,8 +27,8 @@ export function DataActions({ state, onImport }: DataActionsProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={handleExport}
-          aria-label="Exportar tareas a un archivo"
+          onClick={exportBackup}
+          aria-label="Export tasks to a file"
         >
           <IconDownload />
         </Button>
@@ -61,7 +36,7 @@ export function DataActions({ state, onImport }: DataActionsProps) {
           variant="ghost"
           size="icon-sm"
           onClick={() => fileRef.current?.click()}
-          aria-label="Importar tareas desde un archivo"
+          aria-label="Import tasks from a file"
         >
           <IconUpload />
         </Button>

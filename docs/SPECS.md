@@ -1,454 +1,487 @@
-# Especificaciones — Task Manager
+# Specs — Task Manager
 
-> Documento de referencia del proyecto: qué construimos, qué no, y cómo escribimos el código.
-> El resumen operativo para el día a día está en [CLAUDE.md](../CLAUDE.md).
+> The project's reference document: what we build, what we don't, and how we write the
+> code. The day-to-day working summary is in [CLAUDE.md](../CLAUDE.md).
 
 ---
 
-## 1. Objetivo
+## 1. Goal
 
-Una aplicación de **hábitos diarios** para una sola persona.
+A **daily habits** app for a single person.
 
-A diferencia de una lista de tareas clásica, aquí las tareas **no se borran al
-completarse**: representan rutinas. Al cambiar el día vuelven a estado pendiente, se
-archiva lo cumplido y la lista se reutiliza.
+Unlike a classic to-do list, here tasks **are not deleted when completed**: they stand for
+routines. When the day changes they go back to pending, what was met is archived, and the
+list is reused.
 
-**Principios que ordenan cualquier decisión:**
+**Principles that settle any decision:**
 
-1. **Simplicidad por encima de completitud.** Ante la duda, la opción con menos código.
-2. **Cero fricción.** Abrir la app y añadir una tarea debe costar un gesto. Sin login,
-   sin configuración, sin pantalla de carga.
-3. **Funciona sin red.** Los datos son del usuario y viven en su navegador.
-4. **Accesible por defecto.** Teclado y lector de pantalla son requisitos, no extras.
-5. **Nada se pierde por accidente.** Todo borrado se puede deshacer y todo el estado se
-   puede exportar.
+1. **Simplicity over completeness.** When in doubt, the option with less code.
+2. **Zero friction.** Opening the app and adding a task should cost one gesture. No login,
+   no configuration, no loading screen.
+3. **Works without a network.** The data belongs to the user and lives in their browser.
+4. **Accessible by default.** Keyboard and screen reader are requirements, not extras.
+5. **Nothing is lost by accident.** Every deletion can be undone and the whole state can
+   be exported.
 
-### Alcance
+### Scope
 
-| Dentro | Fuera |
+| In | Out |
 |---|---|
-| CRUD de tareas | Autenticación / cuentas |
-| Metas por repeticiones (`target`) | Backend, API, sincronización |
-| Días de la semana por tarea | Múltiples listas o proyectos |
-| Orden manual de la lista | Etiquetas, prioridades, subtareas |
-| Rachas por tarea y globales | Notificaciones, recordatorios |
-| Reset diario automático | Estadísticas o gráficas de progreso |
-| Deshacer eliminación | Adjuntos, notas largas |
-| Exportar / importar JSON | Colaboración |
-| Tema claro / oscuro / sistema | |
-| Instalable y offline (PWA) | |
+| Task CRUD | Authentication / accounts |
+| Repetition targets (`target`) | Backend, API, sync |
+| Weekdays per task | Multiple lists or projects |
+| Manual list order | Tags, priorities, subtasks |
+| Per-task and global streaks | Notifications, reminders |
+| Automatic daily reset | Statistics or progress charts |
+| Undo deletion | Attachments, long notes |
+| JSON export / import | Collaboration |
+| Installable and offline (PWA) | Light theme or a theme switch |
 
-Lo que está "fuera" no está prohibido para siempre, pero añadirlo exige una conversación
-previa: cada una de esas funciones rompe alguno de los cinco principios.
+What is "out" is not forbidden forever, but adding it takes a conversation first: each of
+those features breaks one of the five principles.
 
-### Restricciones técnicas derivadas
+### Technical constraints that follow
 
-- **Sin router.** Es una sola pantalla.
-- **Sin gestor de estado externo.** `useState` más un hook propio es suficiente y lo
-  seguirá siendo mientras el alcance no cambie.
-- **Sin librería de fechas.** `Intl` y la API nativa `Date` cubren el caso de uso.
-- **Sin plugin de PWA.** El manifest y el service worker están escritos a mano
-  (~60 líneas) porque el caso es simple y una dependencia de build no se justifica.
-- **Sin dependencias nuevas** sin justificación explícita.
+- **No router.** It is a single screen.
+- **No external state manager.** `useState` plus one hook of our own is enough and will
+  stay enough while the scope does not change.
+- **No date library.** `Intl` and the native `Date` API cover the use case.
+- **No PWA plugin.** The manifest and the service worker are hand written (~60 lines)
+  because the case is simple and a build dependency is not justified.
+- **No new dependencies** without explicit justification.
 
 ---
 
-## 2. Modelo de dominio
+## 2. Domain model
 
 ```ts
-type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6  // 0 = domingo, igual que Date.getDay()
-type DayKey = string                       // 'YYYY-MM-DD' en hora local
+type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6  // 0 = Sunday, same as Date.getDay()
+type DayKey = string                       // 'YYYY-MM-DD' in local time
 
 type Task = {
   id: string
   title: string
-  target: number     // 1..99 repeticiones necesarias. 1 = tarea simple
-  progress: number   // 0..target repeticiones acumuladas hoy
-  weekdays: Weekday[] // vacío = todos los días
+  repeats: boolean    // a daily habit; false = a one-off, done once and gone
+  target: number      // 1..99 repetitions needed. 1 = a plain task
+  progress: number    // 0..target repetitions logged today
+  weekdays: Weekday[] // empty = every day
   createdAt: number
 }
 
 type TasksState = {
-  tasks: Task[]                      // el orden del array es el orden visible
+  tasks: Task[]                      // array order is display order
   lastResetDate: DayKey
-  history: Record<DayKey, string[]>  // día → ids completados ese día
+  history: Record<DayKey, string[]>  // day → ids completed that day
 }
 ```
 
-### `done` es derivado, no almacenado
+### `done` is derived, not stored
 
 ```ts
 const isTaskDone = (task: Task) => task.progress >= task.target
 ```
 
-Es la decisión central del modelo. Guardar `done` **y** `progress` como campos separados
-permitiría el estado imposible «completada con 3 de 8», y obligaría a sincronizarlos en
-cada acción. Derivándolo, ese bug no puede escribirse.
+This is the central decision of the model. Storing `done` **and** `progress` as separate
+fields would allow the impossible state "done with 3 of 8", and would force keeping them
+in sync on every action. By deriving it, that bug cannot be written.
 
-Su consecuencia útil: **una tarea normal es simplemente `target: 1`**. No hay dos tipos de
-tarea ni ramas condicionales repartidas por los componentes; el checkbox es el caso
-degenerado del contador.
+Its useful consequence: **a plain task is simply `target: 1`**. There is no second kind of
+task and no conditional branches spread across the components; the checkbox is the
+degenerate case of the counter.
 
-### Invariantes
+### Repeating tasks and one-off tasks
 
-Se garantizan en el hook y en `lib/`, nunca en los componentes:
+`repeats` says whether the task comes back. It is not a second kind of task in the sense
+above — progress works the same either way — it only says how long the task lives:
 
-- `title` no está vacío ni tiene espacios sobrantes. Añadir o editar en blanco es un
-  no-op silencioso.
-- `target` es un entero entre 1 y 99. Cualquier entrada se normaliza con `normalizeTarget`.
-- `progress` está entre 0 y `target`. **Bajar `target` recorta `progress`**; es el caso
-  límite que se olvida.
-- `weekdays` no tiene duplicados, está ordenado y solo contiene 0..6. La lista vacía
-  significa «todos los días» y nunca se permite dejar cero días marcados desde la UI:
-  sería indistinguible de «todos».
-- `id` es único y estable durante toda la vida de la tarea.
+| | `repeats: true` (default) | `repeats: false` |
+|---|---|---|
+| Schedule | `weekdays`, empty = every day | always due, until it is done |
+| Counter | `target` 1..99 | always 1 |
+| Streak | per-task and global | none; it is left out of both |
+| Day change | progress back to zero | if it was met, the task is gone |
+
+A one-off carries neither `weekdays` nor a `target` above 1: `scheduleOf` strips both when
+`repeats` is false, both on creation and on edit, so no unreachable state is stored.
+
+### Invariants
+
+Guaranteed in the hook and in `lib/`, never in the components:
+
+- `title` is neither empty nor padded with stray spaces. Adding or editing to blank is a
+  silent no-op.
+- `target` is an integer between 1 and 99. Any input is normalized by `normalizeTarget`.
+- `progress` sits between 0 and `target`. **Lowering `target` clamps `progress`**; that is
+  the edge case people forget.
+- `weekdays` has no duplicates, is sorted, and only holds 0..6. The empty list means
+  "every day", and the UI never allows leaving zero days marked: it would be
+  indistinguishable from "every day".
+- A task with `repeats: false` always has `target: 1` and `weekdays: []`.
+- `id` is unique and stable for the whole life of the task.
 
 ---
 
-## 3. Arquitectura
+## 3. Architecture
 
 ```
-main.tsx  ── registra el service worker en producción
-└── App.tsx ────────── useTasks()  ← única fuente de verdad
-    │                  useTheme()  ← claro / oscuro / sistema
-    ├── TaskInput ──── WeekdayPicker
-    ├── TaskList ───── TaskItem ─── TaskProgress
-    │                            └─ WeekdayPicker
-    ├── ThemeToggle
-    ├── DataActions   (exportar / importar)
-    └── UndoToast
+main.tsx  ── registers the service worker in production
+└── App.tsx ────────── useTasks()  ← the single source of truth
+    ├── tasks/TaskInput ──── useTaskForm
+    │                     └─ tasks/WeekdayPicker
+    ├── tasks/TaskList ───── tasks/TaskItem ─── tasks/TaskProgress
+    │                                        ├─ tasks/WeekdayPicker
+    │                                        └─ useTaskForm
+    ├── shell/DataActions ── useBackup   (export / import)
+    └── shell/UndoToast
 ```
 
-**Flujo de datos unidireccional.** `useTasks` posee el estado; los componentes reciben
-datos por props y comunican intenciones mediante callbacks. Ningún componente lee o
-escribe `localStorage` directamente.
+**One-way data flow.** `useTasks` owns the state; components receive data through props
+and signal intent through callbacks. No component reads or writes `localStorage` directly.
 
-### Responsabilidades
+### Responsibilities
 
-| Módulo | Responsabilidad | No debe |
+| Module | Responsibility | Must not |
 |---|---|---|
-| [`lib/date.ts`](../src/lib/date.ts) | Claves de día, formato, días de la semana | Conocer nada sobre tareas |
-| [`lib/tasks.ts`](../src/lib/tasks.ts) | Lógica de dominio **pura**: progreso, reset, rachas, orden | Tocar `localStorage` ni React |
-| [`lib/storage.ts`](../src/lib/storage.ts) | Serializar, validar, migrar, respaldar | Contener reglas de negocio |
-| [`hooks/useTasks.ts`](../src/hooks/useTasks.ts) | Estado, invariantes, persistencia, deshacer | Contener JSX o clases de estilo |
-| [`hooks/useTheme.ts`](../src/hooks/useTheme.ts) | Tema y su persistencia | Conocer las tareas |
-| [`components/`](../src/components/) | Presentación e interacción | Guardar estado de dominio |
-| [`components/ui/`](../src/components/ui/) | Primitivas shadcn | Conocer el dominio (`Task`) |
-| [`types/task.ts`](../src/types/task.ts) | Tipos y constantes de dominio | Tipos de props de un solo componente |
+| [`lib/config.ts`](../src/lib/config.ts) | Domain constants and storage keys | Hold logic |
+| [`lib/date.ts`](../src/lib/date.ts) | Day keys and date formatting | Know anything about tasks |
+| [`lib/weekdays.ts`](../src/lib/weekdays.ts) | Labels, selection and weekly scheduling | Touch progress |
+| [`lib/tasks.ts`](../src/lib/tasks.ts) | **Pure** domain logic: progress, reset, streaks, order | Touch `localStorage` or React |
+| [`lib/storage.ts`](../src/lib/storage.ts) | Serialize, validate, migrate, back up | Hold business rules |
+| [`lib/download.ts`](../src/lib/download.ts) | Hand a piece of text over as a file | Know what is being downloaded |
+| [`hooks/useTasks.ts`](../src/hooks/useTasks.ts) | State, invariants, persistence, undo | Hold JSX or style classes |
+| [`hooks/useTaskForm.ts`](../src/hooks/useTaskForm.ts) | Fields shared by create and edit | Persist anything |
+| [`hooks/useBackup.ts`](../src/hooks/useBackup.ts) | Export, import and the visible error | Touch the input's DOM |
+| [`components/tasks/`](../src/components/tasks/) · [`shell/`](../src/components/shell/) | Presentation and interaction | Hold domain state |
+| [`components/ui/`](../src/components/ui/) | shadcn primitives | Know the domain (`Task`) |
+| [`types/`](../src/types/) | One domain type per file, with a barrel | Props types for a single component |
 
-**La regla que más rendimiento da: todo lo que se pueda escribir como función pura va a
-`lib/tasks.ts`.** Es lo que hace que el reset diario, las rachas y el clamp del progreso
-sean testeables sin montar React ni simular el paso del tiempo.
+**The rule that pays off most: anything that can be written as a pure function goes to
+`lib/`.** It is what makes the daily reset, the streaks and the progress clamp testable
+without mounting React or faking the passage of time. What needs React but no JSX — a
+form draft, the export/import cycle — goes in a hook, not inside the component.
 
-Los tipos de props se declaran **junto al componente que los usa**, no en `types/`.
+Props types are declared **next to the component that uses them**, not in `types/`.
 
-### Estado local permitido
+### Local state that is allowed
 
-Un componente puede tener `useState` propio para estado **efímero de UI**: el borrador de
-edición en `TaskItem`, los campos de `TaskInput`, si la sección de otros días está
-desplegada. Ese estado muere con el componente y nunca se persiste.
+A component may keep its own `useState` for **ephemeral UI state**: whether it is in edit
+mode, whether the options panel or the other-days section are expanded. That state dies
+with the component and is never persisted. Form fields are no longer component state:
+they live in `useTaskForm`, shared by create and edit.
 
-### Reset diario
+### Daily reset
 
-`applyDailyReset(state, today)` es pura y devuelve **el mismo objeto** si no ha cambiado el
-día, para no provocar renderizados de más. Cuando sí cambia:
+`applyDailyReset(state, today)` is pure and returns **the same object** when the day has
+not changed, to avoid extra renders. When it has:
 
-1. Archiva en `history[lastResetDate]` los ids de las tareas completadas.
-2. Pone `progress: 0` en todas las tareas.
-3. Actualiza `lastResetDate` y poda el historial.
+1. Archives the ids of the completed tasks into `history[lastResetDate]`.
+2. Sets `progress: 0` on every task.
+3. Updates `lastResetDate` and prunes the history.
 
-Se comprueba en tres momentos, para cubrir tanto la pestaña activa como la que estuvo
-horas en segundo plano: al montar, cada 30 segundos, y en `focus` / `visibilitychange`.
-
----
-
-## 4. Persistencia
-
-- Clave: `daily-task-manager:v2`. El tema va aparte, en `daily-task-manager:theme`.
-- **Lectura defensiva y saneada.** `loadState` nunca lanza: ante JSON corrupto, campos con
-  el tipo equivocado o valores fuera de rango, devuelve lo recuperable y descarta el resto.
-  Un `localStorage` roto no puede tumbar la app.
-- **Escritura tolerante a fallos.** Si `localStorage` está lleno o deshabilitado, la
-  sesión sigue funcionando en memoria en lugar de romperse.
-- **Migración v1 → v2.** El formato v1 guardaba `done: boolean` y no tenía metas, días ni
-  historial. `sanitizeState` lo reconoce y lo convierte
-  (`target: 1`, `progress: done ? 1 : 0`, `weekdays: []`). La migración vive en el propio
-  saneado, así que sirve igual al cargar que al importar un respaldo antiguo.
-- **Historial acotado.** Se conservan 180 días (`HISTORY_DAYS`); más atrás no aporta y
-  engorda el almacenamiento.
-- **Versionado.** Si la forma de `TasksState` cambia de manera incompatible, sube el
-  sufijo de la clave y añade el caso al saneado. Nunca cambies el significado de un campo
-  manteniendo la misma clave.
+It is checked at three moments, to cover both the active tab and one that sat hours in the
+background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
 
 ---
 
-## 5. Funcionalidades
+## 4. Persistence
 
-### 5.1 Contador de repeticiones
-
-Una tarea puede exigir varias repeticiones al día: «beber 8 vasos de agua».
-
-- Se configura **al crear la tarea**, en el campo *Repeticiones al día*, y se puede
-  cambiar al editarla. No hay interpretación del título: es un campo explícito.
-- **Un solo gesto para todo el ciclo.** `advanceProgress` suma una repetición y, una vez
-  alcanzada la meta, el siguiente avance vuelve a cero. Con `target: 1` eso es exactamente
-  marcar y desmarcar un checkbox, así que la acción es la misma para ambos casos.
-- Un botón `−` permite corregir un avance de más; solo aparece con `target > 1` y
-  `progress > 0`. Volver a dar siete clics para deshacer uno sería hostil.
-- **UI:** con `target: 1`, checkbox. Con `target > 1`, una píldora `3/8` que se rellena
-  proporcionalmente. Se descartaron los «8 puntitos» porque no escalan a `target: 30`.
-
-### 5.2 Días de la semana
-
-Cada tarea puede limitarse a ciertos días: «gimnasio los lunes, miércoles y viernes».
-
-- `weekdays: []` significa todos los días. El selector muestra los siete marcados en ese
-  caso y normaliza de vuelta a `[]` cuando el usuario los activa todos.
-- Las tareas que no tocan hoy **no aparecen en la lista principal**. Se agrupan en una
-  sección plegable «N tareas de otros días», donde se muestran apagadas y sin control de
-  progreso, pero siguen siendo editables, reordenables y eliminables.
-- Un día en que no tocaba **no rompe la racha**: se salta.
-
-### 5.3 Orden manual
-
-- El orden de `tasks` es el orden visible. Una rutina diaria tiene un orden natural que el
-  orden de inserción no captura.
-- La acción del hook es `swapTasks(id, otherId)`, **por id y no por posición**. Quien
-  llama conoce la lista que se está viendo, que puede tener tareas ocultas por no tocar
-  hoy; con índices globales, subir una tarea podría no producir ningún cambio visible.
-- Se descartó el drag & drop: `@dnd-kit` es una dependencia grande y el arrastre es peor
-  para teclado y lector de pantalla que dos botones.
-
-### 5.4 Deshacer eliminación
-
-- Eliminar no pide confirmación, pero durante **6 segundos** aparece un aviso con
-  *Deshacer* que devuelve la tarea **a su posición original**, no al final.
-- Es preferible a un diálogo de confirmación: no interrumpe el caso normal (borrar de
-  verdad) y protege el caso raro (borrar sin querer).
-- El temporizador se cancela al eliminar otra tarea, al deshacer, al descartar el aviso y
-  al desmontar.
-
-### 5.5 Exportar e importar
-
-- Los datos solo viven en este navegador: si el usuario limpia los datos del sitio, los
-  pierde. El respaldo manual es la única red de seguridad.
-- Exporta `{ version, exportedAt, data }` a `tareas-YYYY-MM-DD.json`.
-- La importación **reemplaza** el estado completo y pasa por el mismo saneado que la
-  carga, así que un archivo manipulado no puede meter datos inválidos. Los errores se
-  muestran en texto, nunca en un `alert`.
-- Acepta tanto el envoltorio con `version` como un `TasksState` desnudo, y también el
-  formato v1.
-
-### 5.6 Rachas
-
-- **Por tarea:** días consecutivos cumpliéndola hacia atrás desde hoy. Los días en que no
-  tocaba se saltan sin romperla, y **el día en curso sin completar tampoco la rompe**:
-  todavía hay tiempo. Se muestra junto al título a partir de 1 día.
-- **Global:** días consecutivos completando *todas* las tareas que tocaban. Se muestra en
-  la cabecera.
-- **Aproximación conocida y aceptada:** para los días pasados, la racha global se
-  reconstruye con las tareas que existen hoy, filtrando por `createdAt`. Una tarea
-  eliminada deja de contar hacia atrás. Guardar el conjunto de tareas programadas de cada
-  día multiplicaría el tamaño del historial para un beneficio marginal.
-
-### 5.7 Tema
-
-- Tres estados en ciclo: claro → oscuro → sistema. Con `system` se sigue el cambio del
-  sistema operativo en caliente, mediante `matchMedia`.
-- Un script en línea en `index.html` aplica la clase `.dark` **antes del primer pintado**.
-  Sin él, quien tenga el tema oscuro vería un destello blanco en cada carga.
-
-### 5.8 PWA e instalación
-
-- `public/manifest.webmanifest` la hace instalable; `public/sw.js` da funcionamiento
-  offline.
-- **Estrategia del service worker:** los recursos de Vite llevan hash en el nombre, así
-  que para ellos la caché nunca queda obsoleta y se sirve primero. La navegación va a la
-  red primero, con la copia en caché como respaldo, para recoger despliegues nuevos.
-- Solo se registra en producción: en desarrollo serviría versiones cacheadas y confundiría.
-- **Limitación conocida:** los iconos del manifest son el `favicon.svg`. Para el icono
-  maskable de Android convendría un PNG de 512×512.
+- Key: `daily-task-manager:v2`.
+- **Defensive, sanitized reads.** `loadState` never throws: faced with corrupt JSON,
+  wrongly typed fields or out-of-range values, it returns what is recoverable and drops
+  the rest. A broken `localStorage` cannot take the app down.
+- **Fault-tolerant writes.** If `localStorage` is full or disabled, the session carries on
+  in memory instead of breaking.
+- **Missing `repeats`.** Anything stored before one-off tasks existed was a habit, so a
+  missing or non-boolean `repeats` sanitizes to `true`.
+- **v1 → v2 migration.** The v1 format stored `done: boolean` and had no targets, days or
+  history. `sanitizeState` recognises it and converts it (`target: 1`,
+  `progress: done ? 1 : 0`, `weekdays: []`). The migration lives in the sanitizing itself,
+  so it serves loading and importing an old backup alike.
+- **Bounded history.** 180 days are kept (`HISTORY_DAYS`); further back adds nothing and
+  bloats storage.
+- **Versioning.** If the shape of `TasksState` changes incompatibly, bump the key suffix
+  and add the case to the sanitizer. Never change the meaning of a field while keeping the
+  same key.
 
 ---
 
-## 6. Convenciones de código
+## 5. Features
 
-### Idioma
+### 5.1 Repetition counter
 
-- **Inglés**: nombres de variables, funciones, tipos, archivos y ramas.
-- **Español**: texto visible en la UI, comentarios, documentación y mensajes de commit.
+A task can demand several repetitions a day: "drink 8 glasses of water".
 
-### Nomenclatura
+- It is set **when creating the task**, in the *Repetitions per day* field, and can be
+  changed when editing it. The title is never parsed: it is an explicit field.
+- **One gesture for the whole cycle.** `advanceProgress` adds one repetition and, once the
+  target is met, the next advance resets to zero. With `target: 1` that is exactly ticking
+  and unticking a checkbox, so the action is the same for both cases.
+- A `−` button lets someone correct one advance too many; it only shows with `target > 1`
+  and `progress > 0`. Clicking seven more times to undo one would be hostile.
+- **UI:** with `target: 1`, a checkbox. With `target > 1`, a `3/8` pill that fills
+  proportionally. The "8 little dots" idea was dropped because it does not scale to
+  `target: 30`.
 
-| Elemento | Convención | Ejemplo |
+### 5.2 Weekdays
+
+Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
+
+- `weekdays: []` means every day. The picker shows all seven marked in that case and
+  normalizes back to `[]` when the user activates them all.
+- Tasks not due today **do not appear in the main list**. They are grouped into a
+  collapsible "N tasks from other days" section, where they show dimmed and without the
+  progress control, but stay editable, reorderable and deletable.
+- A day the task was not due **does not break the streak**: it is skipped.
+
+### 5.3 Manual order
+
+- The order of `tasks` is the visible order. A daily routine has a natural order that
+  insertion order does not capture.
+- The hook's action is `swapTasks(id, otherId)`, **by id and not by position**. The caller
+  knows the list being looked at, which may hide tasks that are not due today; with global
+  indices, moving a task up could produce no visible change at all.
+- Reordering is **drag & drop on the native HTML5 API**, no library: `@dnd-kit` and its
+  kind are large dependencies for what `draggable` + four events already do. The list
+  holds which task is being dragged and which one it is over; the drop calls the same
+  `swapTasks(id, otherId)`, so the domain does not know drag exists.
+- The grip is a real button, and with it focused **ArrowUp / ArrowDown move the task**:
+  native dragging leaves out the keyboard, so the buttons live on inside the handle.
+- **Known limitation:** HTML5 dragging does not fire on touch, so on a phone the order can
+  only be changed with a keyboard.
+
+### 5.4 Undo deletion
+
+- Deleting asks for no confirmation, but for **6 seconds** a notice appears with *Undo*,
+  which puts the task back **in its original position**, not at the end.
+- It beats a confirmation dialog: it does not interrupt the normal case (really deleting)
+  and it protects the rare one (deleting by mistake).
+- The timer is cancelled when another task is deleted, on undo, on dismissing the notice
+  and on unmount.
+
+### 5.5 Export and import
+
+- The data lives only in this browser: if the user clears the site data, it is gone. The
+  manual backup is the only safety net.
+- Exports `{ version, exportedAt, data }` to `tasks-YYYY-MM-DD.json`.
+- Importing **replaces** the whole state and goes through the same sanitizing as loading,
+  so a tampered file cannot inject invalid data. Errors show as text, never in an `alert`.
+- It accepts both the wrapper with `version` and a bare `TasksState`, and the v1 format
+  too.
+
+### 5.6 Streaks
+
+- **Per task:** consecutive days meeting it, counting back from today. Days it was not due
+  are skipped without breaking it, and **an unfinished current day does not break it
+  either**: there is still time. It shows next to the title from 1 day up.
+- **Global:** consecutive days completing *every* task that was due. It shows in the
+  header.
+- **A known and accepted approximation:** for past days, the global streak is rebuilt from
+  the tasks that exist today, filtered by `createdAt`. A deleted task stops counting
+  backwards. Storing the set of scheduled tasks for each day would multiply the size of
+  the history for marginal benefit.
+
+### 5.7 Theme
+
+- **Dark only.** There is no switch, no light palette and nothing persisted about the
+  theme. [`index.css`](../src/index.css) declares a single palette on `:root`.
+- The `dark` class stays hardcoded on `<html>` for one reason: the shadcn primitives ship
+  `dark:` variants that hang off the `@custom-variant dark (&:is(.dark *))` selector. It
+  is not a switch and nothing toggles it.
+
+### 5.8 PWA and installation
+
+- `public/manifest.webmanifest` makes it installable; `public/sw.js` provides offline use.
+- **Service worker strategy:** Vite's assets are hashed, so for them the cache never goes
+  stale and is served first. Navigation goes to the network first, with the cached copy as
+  the fallback, so new deploys get picked up.
+- It only registers in production: in development it would serve cached builds and be
+  confusing.
+- **Known limitation:** the manifest icons are the `favicon.svg`. Android's maskable icon
+  would want a 512×512 PNG.
+
+---
+
+## 6. Code conventions
+
+### Language
+
+**English, everywhere**: variable, function, type, file and branch names, and equally the
+UI copy, comments, documentation and commit messages.
+
+### Naming
+
+| Element | Convention | Example |
 |---|---|---|
-| Componente propio | `PascalCase.tsx` | `TaskItem.tsx` |
-| Componente shadcn | `kebab-case.tsx` en `ui/` | `button.tsx` |
-| Hook | `useAlgo.ts`, export nombrado | `useTasks.ts` |
-| Utilidad | `camelCase.ts` en `lib/` | `date.ts` |
-| Test | junto al archivo que prueba | `tasks.test.ts` |
-| Tipo | `PascalCase` | `Task`, `TasksState` |
-| Props | `type <Componente>Props` | `TaskItemProps` |
-| Callback en props | `on<Evento>` | `onAdd`, `onAdvance` |
-| Handler de evento DOM | `handle<Evento>` | `handleSubmit`, `handleKeyDown` |
-| Acción de dominio | verbo imperativo | `save`, `cancel`, `startEditing` |
-| Booleano | prefijo `is` / `has` / participio | `isEditing`, `done`, `dimmed` |
-| Constante de módulo | `SCREAMING_SNAKE_CASE` | `STORAGE_KEY`, `HISTORY_DAYS` |
+| Own component | `PascalCase.tsx` | `TaskItem.tsx` |
+| shadcn component | `kebab-case.tsx` in `ui/` | `button.tsx` |
+| Hook | `useSomething.ts`, named export | `useTasks.ts` |
+| Utility | `camelCase.ts` in `lib/` | `date.ts` |
+| Test | in `tests/`, same path as the source | `tests/lib/tasks.test.ts` |
+| Type | `PascalCase.ts`, one per file in `types/` | `Task.ts`, `TasksState.ts` |
+| Props | `type <Component>Props` | `TaskItemProps` |
+| Callback prop | `on<Event>` | `onAdd`, `onAdvance` |
+| DOM event handler | `handle<Event>` | `handleSubmit`, `handleKeyDown` |
+| Domain action | imperative verb | `save`, `cancel`, `startEditing` |
+| Boolean | `is` / `has` prefix or a participle | `isEditing`, `done`, `dimmed` |
+| Module constant | `SCREAMING_SNAKE_CASE` | `STORAGE_KEY`, `HISTORY_DAYS` |
 
-Detalles con criterio:
+Details worth the judgement:
 
-- **`remove`, no `delete`** (`delete` es palabra reservada y `removeTask` lee mejor).
-- Los nombres dicen **qué representa el valor**, no su tipo: `completed`, no `completedNum`.
-- Los verbos del dominio son precisos: `advance` (avanzar el contador) no es `toggle`,
-  `swap` (intercambiar dos) no es `move`.
-- Evita abreviaturas salvo las universales (`id`, `props`, `ref`).
+- **`remove`, not `delete`** (`delete` is a reserved word and `removeTask` reads better).
+- Names say **what the value represents**, not its type: `completed`, not `completedNum`.
+- Domain verbs are precise: `advance` (move the counter on) is not `toggle`, `swap`
+  (exchange two) is not `move`.
+- Avoid abbreviations except the universal ones (`id`, `props`, `ref`).
 
-### Estilo
+### Style
 
-- Comillas simples, sin punto y coma, coma final, indentación de 2 espacios.
-- Ancho de línea de unos 80 caracteres para código; las cadenas largas de clases Tailwind
-  quedan en una sola línea (no se parten).
-- Orden de imports: externos → línea en blanco → internos con `@/`.
-- **Siempre alias `@/`**, nunca `../`.
-- `import type { X } from '...'` en declaración separada — `verbatimModuleSyntax` lo exige.
-- `type` en vez de `interface`.
-- `export function Componente()` nombrado. Solo `App` usa `export default`.
+- Single quotes, no semicolons, trailing commas, 2-space indentation.
+- Line width around 80 characters for code; long Tailwind class strings stay on a single
+  line (they are not broken up).
+- Import order: externals → blank line → internals with `@/`.
+- **Always the `@/` alias**, never `../`.
+- `import type { X } from '...'` in its own statement — `verbatimModuleSyntax` requires it.
+- `type` instead of `interface`.
+- Named `export function Component()`. Only `App` uses `export default`.
 
-> **Excepción: `src/components/ui/`.** Es código generado por shadcn (comillas dobles,
-> `export { X }` al final del archivo). Se deja tal cual llega del generador para que
-> `shadcn add` y las actualizaciones no produzcan diffs de estilo. No lo reformatees.
+> **Exception: `src/components/ui/`.** It is shadcn-generated code (double quotes,
+> `export { X }` at the end of the file). It is left exactly as the generator produces it
+> so that `shadcn add` and updates do not produce style diffs. Do not reformat it.
 
-### Comentarios
+### Comments
 
-Comenta el **porqué**, nunca el qué. Los comentarios que hay explican decisiones: por qué
-`done` es derivado, por qué `swapTasks` trabaja con ids, por qué se revoca la object URL
-con un `setTimeout`. Ese es el listón.
+Comment the **why**, never the what. The comments that exist explain decisions: why `done`
+is derived, why `swapTasks` works with ids, why the object URL is revoked inside a
+`setTimeout`. That is the bar.
+
+Always single-line (`//`), never `/** */` blocks, and at most two lines in a row. A
+comment that needs a paragraph is covering for code that should be simplified.
 
 ---
 
-## 7. UI y estilos
+## 7. UI and styles
 
-- **Solo Tailwind**, sin CSS a medida fuera de [`src/index.css`](../src/index.css).
-- **Tokens semánticos siempre**: `bg-card`, `text-muted-foreground`, `border-border`.
-  Nunca `bg-neutral-800` ni colores literales — rompen el modo oscuro.
-- Clases condicionales con `cn()` ([`lib/utils.ts`](../src/lib/utils.ts)), que resuelve
-  conflictos vía `tailwind-merge`.
-- Componentes shadcn desde el registro de `components.json` (estilo `base-nova`, base
-  `neutral`, iconos `tabler`). Añádelos con `npx shadcn add` en vez de escribirlos a mano.
-- Iconos: **solo `@tabler/icons-react`**. No mezclar librerías de iconos.
-- Los iconos dentro de `Button` no llevan clase de tamaño: la variante ya lo resuelve.
+- **Tailwind only**, with no bespoke CSS outside [`src/index.css`](../src/index.css).
+- **Semantic tokens always**: `bg-card`, `text-muted-foreground`, `border-border`. Never
+  `bg-neutral-800` or literal colours — they bypass the palette.
+- Conditional classes through `cn()` ([`lib/utils.ts`](../src/lib/utils.ts)), which
+  resolves conflicts via `tailwind-merge`.
+- shadcn components from the `components.json` registry (`base-nova` style, `neutral`
+  base, `tabler` icons). Add them with `npx shadcn add` rather than writing them by hand.
+- Icons: **`@tabler/icons-react` only**. Do not mix icon libraries.
+- Icons inside `Button` carry no size class: the variant already handles it.
 
-### Accesibilidad — requisitos, no sugerencias
+### Accessibility — requirements, not suggestions
 
-- Todo control sin texto visible lleva `aria-label` descriptivo, **e incluye el título de
-  la tarea** cuando hay varios controles iguales en pantalla (`Subir "Beber agua"`).
-- El control de progreso anuncia el estado completo: `Beber agua: 3 de 8. Sumar una`.
-- Todo elemento clicable muestra `cursor-pointer`. Los `<button>` y los `[role="button"]`
-  ya lo reciben de una regla base en [`index.css`](../src/index.css), así que **no hace
-  falta repetirlo** al usar `Button` o `Checkbox`; sí hay que ponerlo a mano en cualquier
-  otro elemento que se haga clicable, como el título de la tarea.
-- Los controles se alcanzan y accionan con teclado. Enter guarda, Escape cancela.
-- Los botones que aparecen al pasar el ratón usan `focus-within:opacity-100`, para que
-  también aparezcan al tabular.
-- El aviso de deshacer es `role="status"` con `aria-live="polite"`.
-- Nada de `div` con `onClick` donde corresponde un `button`.
-- El foco visible (`focus-visible:ring`) no se elimina.
+- Every control without visible text carries a descriptive `aria-label`, **including the
+  task title** when several identical controls are on screen (`Move "Drink water" up`).
+- The progress control announces the full state: `Drink water: 3 of 8. Add one`.
+- Every clickable element shows `cursor-pointer`. `<button>` and `[role="button"]` already
+  get it from a base rule in [`index.css`](../src/index.css), so **there is no need to
+  repeat it** when using `Button` or `Checkbox`; it does have to be added by hand on any
+  other element made clickable, such as the task title.
+- Controls are reachable and operable by keyboard. Enter saves, Escape cancels.
+- Buttons that appear on hover use `focus-within:opacity-100`, so they also appear when
+  tabbing.
+- The undo notice is `role="status"` with `aria-live="polite"`.
+- No `div` with an `onClick` where a `button` belongs.
+- Visible focus (`focus-visible:ring`) is never removed.
 
 ---
 
 ## 8. Tests
 
-`npm test` (Vitest + Testing Library, entorno jsdom).
+`npm test` (Vitest + Testing Library, jsdom environment).
 
-**Qué se prueba y qué no.** El objetivo no es cobertura, es blindar la lógica que no es
-evidente por lectura:
+**What is tested and what is not.** The goal is not coverage, it is armouring the logic
+that is not obvious on reading:
 
-| Cubierto | Por qué |
+| Covered | Why |
 |---|---|
-| `advanceProgress`, `normalizeTarget` | El ciclo del contador y el clamp son el corazón del modelo |
-| `applyDailyReset` | Archiva historial y reinicia; difícil de probar a mano |
-| `computeStreak` | Reglas sutiles: días saltados, día en curso, fecha de creación |
-| `sanitizeState` | Migración v1 → v2 y defensa ante datos corruptos |
-| `parseBackup` | Entrada externa: es la superficie menos confiable |
-| `useTasks` | Que las invariantes se cumplan al encadenar acciones |
+| `advanceProgress`, `normalizeTarget` | The counter cycle and the clamp are the heart of the model |
+| `applyDailyReset` | Archives history and resets; hard to test by hand |
+| `computeStreak` | Subtle rules: skipped days, the current day, the creation date |
+| `sanitizeState` | v1 → v2 migration and defence against corrupt data |
+| `parseBackup` | External input: the least trustworthy surface there is |
+| `toggleWeekday` | Empty and all seven days mean the same; the normalization is subtle |
+| `useTasks` | That the invariants hold when actions are chained |
 
-No se prueban los componentes de presentación: su valor está en cómo se ven, y un test de
-render solo repetiría el JSX.
+Presentation components are not tested: their value is in how they look, and a render test
+would only repeat the JSX.
 
-Los tests van **junto al archivo que prueban** (`tasks.ts` → `tasks.test.ts`) y están
-excluidos de `tsconfig.app.json`: el build de la app no los compila.
+Tests live in **`tests/`, mirroring the path of the file they cover**
+(`src/lib/tasks.ts` → `tests/lib/tasks.test.ts`). `tsconfig.app.json` includes them, so
+`npm run typecheck` checks them too; what runs them is Vitest.
 
 ---
 
-## 9. Criterios de código limpio
+## 9. Clean-code criteria
 
-Checklist de revisión antes de dar por cerrado un cambio:
+Review checklist before calling a change closed:
 
-**Diseño**
-- [ ] ¿La lógica nueva se puede escribir como función pura en `lib/`? Entonces va ahí.
-- [ ] ¿El estado de dominio está en `useTasks` y no filtrado en un componente?
-- [ ] ¿El componente hace una sola cosa? Si supera unas 150 líneas, probablemente no.
-- [ ] ¿Se puede resolver con menos código o menos abstracción?
+**Design**
+- [ ] Can the new logic be written as a pure function in `lib/`? Then that is where it goes.
+- [ ] Is the domain state in `useTasks` and not leaking into a component?
+- [ ] Does the component do one thing? Past roughly 150 lines, probably not.
+- [ ] Can it be solved with less code or less abstraction?
 
-**Corrección**
-- [ ] ¿Las actualizaciones de estado son inmutables y usan la forma funcional?
-- [ ] ¿Las funciones expuestas por hooks están envueltas en `useCallback`?
-- [ ] ¿Los `useEffect` limpian sus listeners, intervalos y temporizadores?
-- [ ] ¿Las listas usan `key={task.id}`, nunca el índice?
-- [ ] ¿Se validan las entradas del usuario en el hook, no en la vista?
-- [ ] ¿El cambio respeta las invariantes de la sección 2? ¿Hay test que lo demuestre?
+**Correctness**
+- [ ] Are state updates immutable and using the functional form?
+- [ ] Are the functions a hook exposes wrapped in `useCallback`?
+- [ ] Do the `useEffect`s clean up their listeners, intervals and timers?
+- [ ] Do lists use `key={task.id}`, never the index?
+- [ ] Is user input validated in the hook, not in the view?
+- [ ] Does the change respect the invariants in section 2? Is there a test proving it?
 
-**Robustez**
-- [ ] ¿Qué pasa con `localStorage` corrupto, lleno o deshabilitado?
-- [ ] ¿Hay estado vacío diseñado, no una pantalla en blanco?
-- [ ] ¿El texto largo o sin espacios se ajusta y no rompe el layout?
+**Robustness**
+- [ ] What happens with a corrupt, full or disabled `localStorage`?
+- [ ] Is there a designed empty state, not a blank screen?
+- [ ] Does long or unbroken text wrap without breaking the layout?
 
-**Higiene**
-- [ ] `npm run build`, `npm run lint` y `npm test` pasan.
-- [ ] Sin `console.log`, código comentado ni imports sin usar.
-- [ ] Sin `any` ni `@ts-ignore`.
-- [ ] Los nombres siguen la tabla de la sección 6.
+**Hygiene**
+- [ ] `npm run check` passes.
+- [ ] No `console.log`, commented-out code or unused imports.
+- [ ] No `any` and no `@ts-ignore`.
+- [ ] Names follow the table in section 6.
 
-### Antipatrones concretos
+### Concrete antipatterns
 
-| Evita | Haz |
+| Avoid | Do |
 |---|---|
-| Guardar un valor que se puede derivar | `isTaskDone(task)` en vez de un campo `done` |
-| `useEffect` para derivar valores | Calcula en el render |
-| Acciones que reciben índices de array | Recíbelas por `id`, que es estable |
-| Pasar el objeto `Task` completo a un callback | Pasa el `id` |
-| `index` como `key` | `task.id` |
-| Mutar `state.tasks.push(...)` | `[...prev.tasks, task]` |
-| Lógica de dominio dentro de un componente | Función pura en `lib/tasks.ts` |
-| Componente de `ui/` que importa `Task` | Mantén `ui/` agnóstico del dominio |
-| Un hook `useTaskFilters`, `useTaskSort`… por función | Un solo `useTasks` mientras quepa |
-| `alert()` para errores | Texto con `role="alert"` junto a la acción |
+| Storing a value that can be derived | `isTaskDone(task)` instead of a `done` field |
+| `useEffect` to derive values | Compute during render |
+| Actions that take array indices | Take them by `id`, which is stable |
+| Passing the whole `Task` object to a callback | Pass the `id` |
+| `index` as `key` | `task.id` |
+| Mutating with `state.tasks.push(...)` | `[...prev.tasks, task]` |
+| Domain logic inside a component | A pure function in `lib/tasks.ts` |
+| A `ui/` component importing `Task` | Keep `ui/` agnostic of the domain |
+| A `useTaskFilters`, `useTaskSort`… hook per feature | A single `useTasks` while it fits |
+| `alert()` for errors | Text with `role="alert"` next to the action |
 
 ---
 
 ## 10. Git
 
-- Ramas: `feat/…`, `fix/…`, `refactor/…`, `docs/…`.
-- Commits siguiendo Conventional Commits, como el historial actual:
-  `refactor: replace lucide icons with tabler icons`. Un commit, un cambio coherente.
-- `dist/`, `node_modules/` y los lockfiles están ignorados por decisión del proyecto.
+- Branches: `feat/…`, `fix/…`, `refactor/…`, `docs/…`.
+- Commits follow Conventional Commits, like the current history:
+  `refactor: replace lucide icons with tabler icons`. One commit, one coherent change.
+- `dist/`, `node_modules/` and the lockfiles are ignored by project decision.
 
 ---
 
-## 11. Estado actual y pendientes
+## 11. Current state and pending work
 
-**Implementado**: todo lo descrito en la sección 5, más el CRUD, el reset diario, el
-estado vacío y la persistencia local.
+**Implemented**: everything described in section 5, plus the CRUD, the daily reset, the
+empty state and local persistence.
 
-**Pendiente**:
+**Pending**:
 
-| Tarea | Nota |
+| Task | Note |
 |---|---|
-| Instalar las dependencias de test | `npm i -D vitest jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event`. Los tests y `vitest.config.ts` ya están escritos; sin instalar, `npm test` falla |
-| Icono PNG 512×512 para el manifest | Hoy se usa el SVG, que Android no acepta como maskable |
-| Formato roto en [`checkbox.tsx`](../src/components/ui/checkbox.tsx) | `<IconCheck` y `/>` quedaron en líneas separadas |
-| Prettier | Formalizaría el estilo de la sección 6; hay que excluir `src/components/ui/` |
+| 512×512 PNG icon for the manifest | The custom SVG is in place; Android will not take it as `maskable` and wants the PNG |
+| Prettier | It would formalize the style in section 6; `src/components/ui/` has to be excluded |
 
-El warning de oxlint en [`button.tsx`](../src/components/ui/button.tsx)
-(`only-export-components`, por exportar `buttonVariants`) es el patrón estándar de shadcn
-y se acepta como tal.
+The oxlint warning in [`button.tsx`](../src/components/ui/button.tsx)
+(`only-export-components`, for exporting `buttonVariants`) is the standard shadcn pattern
+and is accepted as such.

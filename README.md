@@ -1,73 +1,55 @@
 # Task Manager
 
-Aplicación de **hábitos diarios**. A diferencia de una lista de tareas normal, aquí las
-tareas no se borran al completarse: se conservan de un día para otro y cada madrugada
-vuelven a estado pendiente, archivando lo que cumpliste.
+A list of **daily habits**. Tasks are not deleted when you complete them: they carry over
+from one day to the next and, when the day changes, what you met is archived and progress
+returns to zero.
 
-Funciona entera en el navegador. Sin cuentas, sin servidor, sin red.
+It runs entirely in the browser. No accounts, no server, no network. The data lives in
+`localStorage` and the backup is a JSON file you export and import yourself.
 
-## Qué hace
+## What it does
 
-- **Metas por repeticiones.** Una tarea puede necesitar varios avances para darse por
-  hecha: *beber 8 vasos de agua*. Cada clic suma uno; al llegar a la meta, el siguiente
-  vuelve a cero.
-- **Días de la semana.** *Gimnasio los lunes, miércoles y viernes*. Lo que no toca hoy se
-  aparta a una sección plegable.
-- **Rachas.** Días consecutivos cumpliendo cada tarea, y una racha global de días
-  redondos. Los días en que no tocaba no la rompen.
-- **Orden manual.** Tu rutina tiene un orden; la lista lo respeta.
-- **Deshacer.** Borrar una tarea deja 6 segundos para recuperarla en su sitio.
-- **Respaldo.** Exporta e importa todo en un JSON.
-- **Tema** claro, oscuro o el del sistema.
-- **Instalable y offline.** Es una PWA.
+- **Repetition targets.** A task can ask for several advances: *drink 8 glasses of water*.
+  Each click adds one; once the target is met, the next one resets it. A plain task is
+  just the target-1 case, a checkbox.
+- **Weekdays.** *Gym on Monday, Wednesday and Friday*. Whatever is not due today is set
+  aside in a collapsible section.
+- **Streaks.** Consecutive days meeting each task, plus a global streak of perfect days.
+  Days a task was not due never break it.
+- **Manual order, undo and backup.** The list keeps your order, deleting leaves 6 seconds
+  to bring the task back, and everything exports to JSON.
+- **Dark theme only**, and installable as a PWA with offline support.
 
-## Puesta en marcha
+## Getting started
 
 ```bash
 npm install
-npm run dev
+npm run dev      # http://localhost:5173
+npm run check    # lint, types and tests: what has to pass before a commit
 ```
 
-## Comandos
-
-| Comando | Qué hace |
-|---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm run build` | Comprueba tipos y compila a `dist/` |
-| `npm run lint` | Oxlint |
-| `npm test` | Vitest |
-
-> Los tests necesitan un paso extra la primera vez:
-> `npm i -D vitest jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event`
-
-## Stack
-
-React 19 · TypeScript 6 · Vite 8 · Tailwind 4 · [shadcn](https://ui.shadcn.com) sobre
-[Base UI](https://base-ui.com) · [Tabler Icons](https://tabler.io/icons) · Vitest.
-
-El manifest y el service worker están escritos a mano para no añadir dependencias de
-build.
-
-## Dónde está cada cosa
+## Layout
 
 ```
 src/
-├── App.tsx              Composición de la pantalla
-├── components/          Presentación (ui/ = primitivas shadcn)
-├── hooks/
-│   ├── useTasks.ts      Única fuente de verdad del estado
-│   └── useTheme.ts      Tema
-├── lib/
-│   ├── date.ts          Claves de día, formato, días de la semana
-│   ├── tasks.ts         Lógica de dominio pura (progreso, reset, rachas)
-│   └── storage.ts       Serializar, validar, migrar, respaldar
-└── types/task.ts        Tipos y constantes de dominio
+  components/   ui/ is shadcn; tasks/ and shell/ are ours and only render
+  hooks/        state and forms
+  lib/          the domain logic, pure and free of React
+  types/        one type per file, re-exported from index.ts
+tests/          mirrors the src/ tree
 ```
 
-Los datos viven en `localStorage` bajo `daily-task-manager:v2`.
+The rule that orders everything else: **logic lives in `lib/`, state in `hooks/`, and
+components only receive data and callbacks**. If something can be tested without mounting
+a component, it belongs in `lib/`.
 
-## Contribuir
+`done` is not a field: it derives from `progress >= target`. There is no second kind of
+task.
 
-Antes de tocar nada, lee [docs/SPECS.md](docs/SPECS.md): objetivos, alcance, modelo de
-dominio, convenciones de nomenclatura y criterios de código limpio. El resumen operativo
-para agentes está en [CLAUDE.md](CLAUDE.md).
+## Stack
+
+React 19 · TypeScript 6 · Vite 8 · Tailwind 4 · shadcn on Base UI · Tabler icons ·
+Vitest. The manifest and the service worker are hand written, with no PWA plugin.
+
+Code conventions are in [CLAUDE.md](CLAUDE.md), and the design decisions, with their
+reasoning, in [docs/SPECS.md](docs/SPECS.md).

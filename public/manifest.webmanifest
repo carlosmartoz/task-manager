@@ -1,8 +1,8 @@
 {
-  "name": "Task Manager — Tareas diarias",
-  "short_name": "Tareas",
-  "description": "Tareas diarias recurrentes con metas por repeticiones y rachas.",
-  "lang": "es",
+  "name": "Task Manager — Daily habits",
+  "short_name": "Tasks",
+  "description": "Recurring daily tasks with repetition targets and streaks.",
+  "lang": "en",
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",

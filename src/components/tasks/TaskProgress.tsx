@@ -1,7 +1,7 @@
 import { Checkbox } from '@/components/ui/checkbox'
-import { isTaskDone } from '@/lib/tasks'
+import { isTaskDone, progressPercent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
-import type { Task } from '@/types/task'
+import type { Task } from '@/types'
 
 type TaskProgressProps = {
   task: Task
@@ -9,11 +9,8 @@ type TaskProgressProps = {
   disabled?: boolean
 }
 
-/**
- * Control único para los dos casos: con `target` 1 es un checkbox normal y con
- * meta mayor una píldora «3/8» que se rellena. Un clic siempre avanza; al
- * llegar a la meta, el siguiente vuelve a cero.
- */
+// With `target` 1 it is a checkbox; with a higher target, a read-only "3/8"
+// pill: the counter is moved by the + and − buttons of the row.
 export function TaskProgress({ task, onAdvance, disabled }: TaskProgressProps) {
   const done = isTaskDone(task)
 
@@ -23,36 +20,32 @@ export function TaskProgress({ task, onAdvance, disabled }: TaskProgressProps) {
         checked={done}
         onCheckedChange={onAdvance}
         disabled={disabled}
-        aria-label={`Marcar "${task.title}" como completada`}
+        aria-label={`Mark "${task.title}" as done`}
       />
     )
   }
 
-  const percent = Math.round((task.progress / task.target) * 100)
-
   return (
-    <button
-      type="button"
-      onClick={onAdvance}
-      disabled={disabled}
-      aria-label={`${task.title}: ${task.progress} de ${task.target}. Sumar una`}
+    <span
+      title={`${task.progress} of ${task.target} today`}
       className={cn(
-        'relative h-7 w-14 shrink-0 overflow-hidden rounded-full border text-xs font-medium tabular-nums transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+        'relative h-6 w-12 shrink-0 overflow-hidden rounded-full border text-xs font-semibold tabular-nums',
+        'flex items-center justify-center',
         done
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border hover:bg-muted',
+          : 'border-border-strong bg-muted text-muted-foreground',
       )}
     >
       {!done && (
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 bg-primary/20 transition-[width]"
-          style={{ width: `${percent}%` }}
+          className="absolute inset-y-0 left-0 bg-primary/25 transition-[width]"
+          style={{ width: `${progressPercent(task)}%` }}
         />
       )}
       <span className="relative">
         {task.progress}/{task.target}
       </span>
-    </button>
+    </span>
   )
 }

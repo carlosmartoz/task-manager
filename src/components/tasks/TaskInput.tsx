@@ -1,83 +1,82 @@
-import { useRef, useState, type FormEvent } from 'react'
-import { IconAdjustmentsHorizontal, IconPlus } from '@tabler/icons-react'
+import { useRef, type FormEvent } from 'react'
 
-import { WeekdayPicker } from '@/components/WeekdayPicker'
+import { WeekdayPicker } from '@/components/tasks/WeekdayPicker'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import type { NewTask } from '@/hooks/useTasks'
-import { MAX_TARGET, MIN_TARGET, type Weekday } from '@/types/task'
+import { useTaskForm } from '@/hooks/useTaskForm'
+import { MAX_TARGET, MIN_TARGET } from '@/lib/config'
+import type { NewTask } from '@/types'
 
 type TaskInputProps = {
   onAdd: (task: NewTask) => void
 }
 
 export function TaskInput({ onAdd }: TaskInputProps) {
-  const [title, setTitle] = useState('')
-  const [target, setTarget] = useState('1')
-  const [weekdays, setWeekdays] = useState<Weekday[]>([])
-  const [showOptions, setShowOptions] = useState(false)
+  const form = useTaskForm()
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    onAdd({ title, target: Number(target) || MIN_TARGET, weekdays })
+    onAdd(form.values)
+    form.reset()
 
-    setTitle('')
-    setTarget('1')
-    setWeekdays([])
-    // Devolver el foco permite encadenar varias tareas sin tocar el ratón.
+    // Handing focus back lets someone chain several tasks without the mouse.
     inputRef.current?.focus()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Input
-          ref={inputRef}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="¿Qué tienes que hacer hoy?"
-          aria-label="Nueva tarea"
-          className="h-10"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-lg"
-          onClick={() => setShowOptions((prev) => !prev)}
-          aria-expanded={showOptions}
-          aria-label="Meta diaria y días de la semana"
-          className="h-10"
-        >
-          <IconAdjustmentsHorizontal />
-        </Button>
-        <Button type="submit" size="lg" disabled={!title.trim()} className="h-10">
-          <IconPlus />
-          Añadir
-        </Button>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <span className="stat-label">Task</span>
+        <div className="mt-1">
+          <Input
+            ref={inputRef}
+            value={form.title}
+            onChange={(event) => form.setTitle(event.target.value)}
+            placeholder="e.g. Drink water, Read…"
+            aria-label="New task"
+          />
+        </div>
       </div>
 
-      {showOptions && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-dashed border-border px-3 py-3">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            Repeticiones al día
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={MIN_TARGET}
-              max={MAX_TARGET}
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-              className="w-16"
-            />
-          </label>
+      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+        <Checkbox checked={form.repeats} onCheckedChange={form.setRepeats} />
+        Repeats every day
+      </label>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            Días
-            <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+      {form.repeats && (
+        <div className="flex flex-wrap gap-3">
+          <div className="w-24 shrink-0">
+            <span className="stat-label">Per day</span>
+            <div className="mt-1">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={MIN_TARGET}
+                max={MAX_TARGET}
+                value={form.target}
+                onChange={(event) => form.setTarget(event.target.value)}
+                aria-label="Repetitions per day"
+              />
+            </div>
+          </div>
+
+          <div className="min-w-56 flex-1">
+            <span className="stat-label">Days</span>
+            <div className="mt-1">
+              <WeekdayPicker
+                value={form.weekdays}
+                onChange={form.setWeekdays}
+              />
+            </div>
           </div>
         </div>
       )}
+
+      <Button type="submit" disabled={!form.isValid} className="w-full">
+        Add task
+      </Button>
     </form>
   )
 }

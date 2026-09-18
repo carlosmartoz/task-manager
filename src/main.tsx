@@ -9,11 +9,11 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Solo en producción: en desarrollo el service worker sirve versiones cacheadas.
+// Production only: in dev the service worker would serve cached builds.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Sin service worker la app funciona igual, solo pierde el modo offline.
+      // Without it the app still works, it just loses offline mode.
     })
   })
 }

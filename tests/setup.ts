@@ -1,7 +1,7 @@
 import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
-// jsdom no siempre expone crypto.randomUUID, del que depende `addTask`.
+// jsdom does not always expose crypto.randomUUID, which `addTask` needs.
 if (typeof globalThis.crypto?.randomUUID !== 'function') {
   let counter = 0
 

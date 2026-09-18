@@ -1,35 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { DAY_CHECK_INTERVAL, UNDO_TIMEOUT } from '@/lib/config'
 import { loadState, saveState } from '@/lib/storage'
 import {
   advanceProgress,
   applyDailyReset,
   clamp,
   moveItem,
-  normalizeTarget,
+  scheduleOf,
 } from '@/lib/tasks'
-import type { Task, TasksState, Weekday } from '@/types/task'
-
-const DAY_CHECK_INTERVAL = 30_000
-const UNDO_TIMEOUT = 6_000
-
-export type NewTask = {
-  title: string
-  target?: number
-  weekdays?: Weekday[]
-}
-
-export type TaskPatch = {
-  title?: string
-  target?: number
-  weekdays?: Weekday[]
-}
-
-/** Tarea eliminada que todavía se puede recuperar, con su posición original. */
-export type PendingUndo = {
-  task: Task
-  index: number
-}
+import type { NewTask, PendingUndo, Task, TaskPatch, TasksState } from '@/types'
 
 export function useTasks() {
   const [state, setState] = useState<TasksState>(() =>
@@ -42,7 +22,7 @@ export function useTasks() {
     saveState(state)
   }, [state])
 
-  // Detecta el cambio de día con la pestaña abierta y al volver a ella.
+  // Catches the day change while the tab is open and when coming back to it.
   useEffect(() => {
     const check = () => setState((prev) => applyDailyReset(prev))
 
@@ -65,27 +45,24 @@ export function useTasks() {
     setPendingUndo(null)
   }, [])
 
-  const updateTask = useCallback(
-    (id: string, update: (task: Task) => Task) => {
-      setState((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((task) => (task.id === id ? update(task) : task)),
-      }))
-    },
-    [],
-  )
+  const updateTask = useCallback((id: string, update: (task: Task) => Task) => {
+    setState((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((task) => (task.id === id ? update(task) : task)),
+    }))
+  }, [])
 
   const addTask = useCallback(
-    ({ title, target = 1, weekdays = [] }: NewTask) => {
+    ({ title, repeats = true, target = 1, weekdays = [] }: NewTask) => {
       const trimmed = title.trim()
       if (!trimmed) return
 
       const task: Task = {
         id: crypto.randomUUID(),
         title: trimmed,
-        target: normalizeTarget(target),
+        repeats,
+        ...scheduleOf(repeats, target, weekdays),
         progress: 0,
-        weekdays: [...weekdays].sort(),
         createdAt: Date.now(),
       }
 
@@ -100,19 +77,21 @@ export function useTasks() {
         const title = patch.title === undefined ? task.title : patch.title.trim()
         if (!title) return task
 
-        const target =
-          patch.target === undefined ? task.target : normalizeTarget(patch.target)
+        const repeats = patch.repeats === undefined ? task.repeats : patch.repeats
+        const { target, weekdays } = scheduleOf(
+          repeats,
+          patch.target === undefined ? task.target : patch.target,
+          patch.weekdays === undefined ? task.weekdays : patch.weekdays,
+        )
 
         return {
           ...task,
           title,
+          repeats,
           target,
-          // Bajar la meta no puede dejar el progreso por encima de ella.
+          weekdays,
+          // Lowering the target must not leave progress above it.
           progress: clamp(task.progress, 0, target),
-          weekdays:
-            patch.weekdays === undefined
-              ? task.weekdays
-              : [...patch.weekdays].sort(),
         }
       })
     },
@@ -136,10 +115,8 @@ export function useTasks() {
     [updateTask],
   )
 
-  /**
-   * Intercambia dos tareas por id, no por posición: quien llama conoce el orden
-   * que se está viendo, que puede tener tareas ocultas por no tocar hoy.
-   */
+  // By id, not by position: the caller sees an order that may hide tasks
+  // which are not due today.
   const swapTasks = useCallback((id: string, otherId: string) => {
     setState((prev) => {
       const from = prev.tasks.findIndex((task) => task.id === id)
@@ -196,8 +173,6 @@ export function useTasks() {
   )
 
   return {
-    tasks: state.tasks,
-    history: state.history,
     state,
     pendingUndo,
     addTask,

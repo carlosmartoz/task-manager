@@ -1,14 +1,14 @@
+import {
+  BACKUP_VERSION,
+  LEGACY_KEY,
+  MIN_TARGET,
+  STORAGE_KEY,
+} from '@/lib/config'
 import { getTodayKey } from '@/lib/date'
 import { normalizeTarget, pruneHistory } from '@/lib/tasks'
-import type { DayKey, Task, TasksState, Weekday } from '@/types/task'
+import type { DayKey, Task, TasksState, Weekday } from '@/types'
 
-const STORAGE_KEY = 'daily-task-manager:v2'
-const LEGACY_KEY = 'daily-task-manager:v1'
-
-/** Versión del formato exportado; sube al cambiar la forma de `TasksState`. */
-export const BACKUP_VERSION = 2
-
-export function emptyState(): TasksState {
+function emptyState(): TasksState {
   return { tasks: [], lastResetDate: getTodayKey(), history: {} }
 }
 
@@ -19,14 +19,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function sanitizeWeekdays(value: unknown): Weekday[] {
   if (!Array.isArray(value)) return []
 
-  const days = value
-    .filter((day): day is number => Number.isInteger(day) && day >= 0 && day <= 6)
-    .map((day) => day as Weekday)
+  const days = value.filter(
+    (day): day is Weekday => Number.isInteger(day) && day >= 0 && day <= 6,
+  )
 
   return [...new Set(days)].sort()
 }
 
-/** Devuelve `null` si el objeto no es recuperable como tarea. */
+// Returns `null` when the value cannot be recovered as a task.
 function sanitizeTask(value: unknown): Task | null {
   if (!isRecord(value)) return null
 
@@ -37,7 +37,7 @@ function sanitizeTask(value: unknown): Task | null {
     typeof value.target === 'number' ? value.target : 1,
   )
 
-  // Formato v1: `done: boolean` en lugar de `progress`.
+  // v1 format: `done: boolean` instead of `progress`.
   const rawProgress =
     typeof value.progress === 'number'
       ? value.progress
@@ -45,14 +45,17 @@ function sanitizeTask(value: unknown): Task | null {
         ? target
         : 0
 
+  // Anything stored before one-off tasks existed was a habit.
+  const repeats = value.repeats !== false
+
   return {
     id: typeof value.id === 'string' && value.id ? value.id : crypto.randomUUID(),
     title,
-    target,
+    repeats,
+    target: repeats ? target : MIN_TARGET,
     progress: Math.min(Math.max(Math.round(rawProgress) || 0, 0), target),
-    weekdays: sanitizeWeekdays(value.weekdays),
-    createdAt:
-      typeof value.createdAt === 'number' ? value.createdAt : Date.now(),
+    weekdays: repeats ? sanitizeWeekdays(value.weekdays) : [],
+    createdAt: typeof value.createdAt === 'number' ? value.createdAt : Date.now(),
   }
 }
 
@@ -69,7 +72,7 @@ function sanitizeHistory(value: unknown): Record<DayKey, string[]> {
   return pruneHistory(Object.fromEntries(entries))
 }
 
-/** Acepta tanto el formato v2 como el v1, que no tenía metas ni historial. */
+// Accepts both the v2 format and v1, which had no targets and no history.
 export function sanitizeState(value: unknown): TasksState {
   if (!isRecord(value)) return emptyState()
 
@@ -104,41 +107,42 @@ export function saveState(state: TasksState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   } catch {
-    // localStorage lleno o deshabilitado: la sesión sigue funcionando en memoria.
+    // localStorage full or disabled: the session carries on in memory.
   }
 }
 
 export function serializeBackup(state: TasksState): string {
-  return JSON.stringify(
-    { version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: state },
-    null,
-    2,
-  )
+  const backup = {
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: state,
+  }
+
+  return JSON.stringify(backup, null, 2)
 }
 
-/** Lanza un error con mensaje legible si el archivo no es un respaldo válido. */
+// Throws a readable error when the file is not a valid backup.
 export function parseBackup(text: string): TasksState {
   let parsed: unknown
 
   try {
     parsed = JSON.parse(text)
   } catch {
-    throw new Error('El archivo no es un JSON válido.')
+    throw new Error('The file is not valid JSON.')
   }
 
-  const state = sanitizeState(parsed)
-  const hasTasks = isRecord(parsed) && (
-    Array.isArray(parsed.tasks) ||
-    (isRecord(parsed.data) && Array.isArray(parsed.data.tasks))
-  )
+  const hasTasks =
+    isRecord(parsed) &&
+    (Array.isArray(parsed.tasks) ||
+      (isRecord(parsed.data) && Array.isArray(parsed.data.tasks)))
 
   if (!hasTasks) {
-    throw new Error('El archivo no contiene una lista de tareas.')
+    throw new Error('The file does not contain a task list.')
   }
 
-  return state
+  return sanitizeState(parsed)
 }
 
 export function backupFilename(date: Date = new Date()): string {
-  return `tareas-${getTodayKey(date)}.json`
+  return `tasks-${getTodayKey(date)}.json`
 }

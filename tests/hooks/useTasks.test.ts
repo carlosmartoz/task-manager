@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { useTasks } from '@/hooks/useTasks'
+import { STORAGE_KEY } from '@/lib/config'
 
 function setup(titles: string[] = []) {
   const view = renderHook(() => useTasks())
@@ -14,7 +15,7 @@ function setup(titles: string[] = []) {
 }
 
 describe('useTasks', () => {
-  it('añade una tarea con su meta y sus días', () => {
+  it('adds a task with its target and its days', () => {
     const { result } = setup()
 
     act(() =>
@@ -25,8 +26,8 @@ describe('useTasks', () => {
       }),
     )
 
-    expect(result.current.tasks).toHaveLength(1)
-    expect(result.current.tasks[0]).toMatchObject({
+    expect(result.current.state.tasks).toHaveLength(1)
+    expect(result.current.state.tasks[0]).toMatchObject({
       title: 'Beber agua',
       target: 8,
       progress: 0,
@@ -34,64 +35,100 @@ describe('useTasks', () => {
     })
   })
 
-  it('ignora los títulos en blanco', () => {
+  it('adds a one-off without target or days, whatever is passed in', () => {
+    const { result } = setup()
+
+    act(() =>
+      result.current.addTask({
+        title: 'Renovar el DNI',
+        repeats: false,
+        target: 8,
+        weekdays: [1, 3],
+      }),
+    )
+
+    expect(result.current.state.tasks[0]).toMatchObject({
+      repeats: false,
+      target: 1,
+      weekdays: [],
+    })
+  })
+
+  it('turning a task into a one-off clears its target and its days', () => {
+    const { result } = setup()
+    act(() =>
+      result.current.addTask({ title: 'Agua', target: 8, weekdays: [1, 3] }),
+    )
+    const id = result.current.state.tasks[0].id
+
+    act(() => result.current.editTask(id, { repeats: false }))
+
+    expect(result.current.state.tasks[0]).toMatchObject({
+      repeats: false,
+      target: 1,
+      weekdays: [],
+      progress: 0,
+    })
+  })
+
+  it('ignores blank titles', () => {
     const { result } = setup()
 
     act(() => result.current.addTask({ title: '   ' }))
 
-    expect(result.current.tasks).toEqual([])
+    expect(result.current.state.tasks).toEqual([])
   })
 
-  it('avanza el progreso y vuelve a cero al pasar la meta', () => {
+  it('advances progress and resets to zero past the target', () => {
     const { result } = setup()
     act(() => result.current.addTask({ title: 'Agua', target: 2 }))
-    const id = result.current.tasks[0].id
+    const id = result.current.state.tasks[0].id
 
     act(() => result.current.advanceTask(id))
-    expect(result.current.tasks[0].progress).toBe(1)
+    expect(result.current.state.tasks[0].progress).toBe(1)
 
     act(() => result.current.advanceTask(id))
-    expect(result.current.tasks[0].progress).toBe(2)
+    expect(result.current.state.tasks[0].progress).toBe(2)
 
     act(() => result.current.advanceTask(id))
-    expect(result.current.tasks[0].progress).toBe(0)
+    expect(result.current.state.tasks[0].progress).toBe(0)
   })
 
-  it('no deja el progreso por encima de una meta rebajada', () => {
+  it('never leaves progress above a lowered target', () => {
     const { result } = setup()
     act(() => result.current.addTask({ title: 'Agua', target: 8 }))
-    const id = result.current.tasks[0].id
+    const id = result.current.state.tasks[0].id
 
     act(() => result.current.advanceTask(id))
     act(() => result.current.advanceTask(id))
     act(() => result.current.editTask(id, { target: 1 }))
 
-    expect(result.current.tasks[0]).toMatchObject({ target: 1, progress: 1 })
+    expect(result.current.state.tasks[0]).toMatchObject({ target: 1, progress: 1 })
   })
 
-  it('reordena intercambiando dos tareas por id', () => {
+  it('reorders by swapping two tasks by id', () => {
     const { result } = setup(['Una', 'Dos', 'Tres'])
-    const [, second, third] = result.current.tasks
+    const [, second, third] = result.current.state.tasks
 
     act(() => result.current.swapTasks(third.id, second.id))
 
-    expect(result.current.tasks.map((task) => task.title)).toEqual([
+    expect(result.current.state.tasks.map((task) => task.title)).toEqual([
       'Una',
       'Tres',
       'Dos',
     ])
   })
 
-  it('devuelve la tarea eliminada a su posición original', () => {
+  it('returns a deleted task to its original position', () => {
     const { result } = setup(['Una', 'Dos', 'Tres'])
-    const middle = result.current.tasks[1]
+    const middle = result.current.state.tasks[1]
 
     act(() => result.current.removeTask(middle.id))
-    expect(result.current.tasks.map((task) => task.title)).toEqual(['Una', 'Tres'])
+    expect(result.current.state.tasks.map((task) => task.title)).toEqual(['Una', 'Tres'])
     expect(result.current.pendingUndo?.task.title).toBe('Dos')
 
     act(() => result.current.undoRemove())
-    expect(result.current.tasks.map((task) => task.title)).toEqual([
+    expect(result.current.state.tasks.map((task) => task.title)).toEqual([
       'Una',
       'Dos',
       'Tres',
@@ -99,11 +136,11 @@ describe('useTasks', () => {
     expect(result.current.pendingUndo).toBeNull()
   })
 
-  it('guarda el estado en localStorage', () => {
+  it('saves the state to localStorage', () => {
     const { result } = setup(['Persistente'])
 
-    const raw = localStorage.getItem('daily-task-manager:v2')
+    const raw = localStorage.getItem(STORAGE_KEY)
     expect(raw).toContain('Persistente')
-    expect(result.current.tasks).toHaveLength(1)
+    expect(result.current.state.tasks).toHaveLength(1)
   })
 })
