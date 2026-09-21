@@ -1,18 +1,23 @@
-import {
-  HISTORY_DAYS,
-  MAX_TARGET,
-  MIN_TARGET,
-  STREAK_MONTH,
-  STREAK_WEEK,
-} from '@/lib/config'
-import { addDays, endOfDay, getTodayKey } from '@/lib/date'
-import { getWeekday, isScheduledOn } from '@/lib/weekdays'
-import type { DayKey, StreakTier, Task, TasksState, Weekday } from '@/types'
+import { HISTORY_DAYS, MAX_TARGET, MIN_TARGET } from '@/lib/config'
+import { addDays, getTodayKey } from '@/lib/date'
+import { isScheduledOn, sortWeekdays } from '@/lib/weekdays'
+import type {
+  NewTask,
+  Task,
+  TaskHistory,
+  TaskPatch,
+  TasksState,
+  Weekday,
+} from '@/types'
 
 // `done` derives from `progress`; as a field it would allow the impossible
 // state "done with 3 of 8".
 export function isTaskDone(task: Task): boolean {
   return task.progress >= task.target
+}
+
+export function countDone(tasks: Task[]): number {
+  return tasks.filter(isTaskDone).length
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -32,12 +37,58 @@ export function scheduleOf(
 ): { target: number; weekdays: Weekday[] } {
   if (!repeats) return { target: MIN_TARGET, weekdays: [] }
 
-  return { target: normalizeTarget(target), weekdays: [...weekdays].sort() }
+  return { target: normalizeTarget(target), weekdays: sortWeekdays(weekdays) }
+}
+
+// `null` when the title is blank: there is nothing to create.
+export function createTask(
+  { title, repeats = true, target = MIN_TARGET, weekdays = [] }: NewTask,
+  id: string = crypto.randomUUID(),
+  now: number = Date.now(),
+): Task | null {
+  const trimmed = title.trim()
+  if (!trimmed) return null
+
+  return {
+    id,
+    title: trimmed,
+    repeats,
+    ...scheduleOf(repeats, target, weekdays),
+    progress: 0,
+    createdAt: now,
+  }
+}
+
+// A blank title leaves the task as it was.
+export function patchTask(task: Task, patch: TaskPatch): Task {
+  const title = patch.title?.trim() ?? task.title
+  if (!title) return task
+
+  const repeats = patch.repeats ?? task.repeats
+  const { target, weekdays } = scheduleOf(
+    repeats,
+    patch.target ?? task.target,
+    patch.weekdays ?? task.weekdays,
+  )
+
+  return {
+    ...task,
+    title,
+    repeats,
+    target,
+    weekdays,
+    // Lowering the target must not leave progress above it.
+    progress: clamp(task.progress, 0, target),
+  }
 }
 
 // One gesture for the whole cycle: add one and, once the target is met, reset.
 export function advanceProgress(task: Task): number {
   return isTaskDone(task) ? 0 : task.progress + 1
+}
+
+export function decrementProgress(task: Task): number {
+  return Math.max(task.progress - 1, 0)
 }
 
 export function progressPercent(task: Task): number {
@@ -55,112 +106,28 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
   return result
 }
 
-// Splits what is due today from what is not, keeping the manual order.
-export function splitByWeekday(tasks: Task[], weekday: Weekday) {
-  return {
-    today: tasks.filter((task) => isScheduledOn(task, weekday)),
-    others: tasks.filter((task) => !isScheduledOn(task, weekday)),
-  }
-}
+// The three lists on screen, each keeping the manual order. A one-off is always
+// due, so it never lands in `others`.
+export function groupForToday(tasks: Task[], weekday: Weekday) {
+  const due = tasks.filter((task) => isScheduledOn(task, weekday))
 
-// Habits and one-offs live in separate lists, keeping the manual order.
-export function splitByRepeat(tasks: Task[]) {
   return {
-    habits: tasks.filter((task) => task.repeats),
-    oneOffs: tasks.filter((task) => !task.repeats),
+    habits: due.filter((task) => task.repeats),
+    oneOffs: due.filter((task) => !task.repeats),
+    others: tasks.filter((task) => !isScheduledOn(task, weekday)),
   }
 }
 
 // Drops the days that fall outside the history window.
 export function pruneHistory(
-  history: Record<DayKey, string[]>,
+  history: TaskHistory,
   today: Date = new Date(),
-): Record<DayKey, string[]> {
+): TaskHistory {
   const oldest = getTodayKey(addDays(today, -HISTORY_DAYS))
 
   return Object.fromEntries(
     Object.entries(history).filter(([day]) => day >= oldest),
   )
-}
-
-// Consecutive days meeting the task, counting back from today. Days it was not
-// due are skipped, and today never breaks it: there is still time.
-export function computeStreak(
-  task: Task,
-  history: Record<DayKey, string[]>,
-  today: Date = new Date(),
-): number {
-  // A one-off is done once: there is no chain of days to count.
-  if (!task.repeats) return 0
-
-  let streak = 0
-
-  for (let offset = 0; offset < HISTORY_DAYS; offset++) {
-    const date = addDays(today, -offset)
-    if (task.createdAt > endOfDay(date)) break
-    if (!isScheduledOn(task, getWeekday(date))) continue
-
-    const completed =
-      offset === 0
-        ? isTaskDone(task)
-        : (history[getTodayKey(date)] ?? []).includes(task.id)
-
-    if (completed) {
-      streak++
-      continue
-    }
-
-    if (offset === 0) continue
-    break
-  }
-
-  return streak
-}
-
-// Consecutive days completing every task that was due. The past is rebuilt from
-// today's tasks: a deleted one no longer counts backwards.
-export function computeGlobalStreak(
-  tasks: Task[],
-  history: Record<DayKey, string[]>,
-  today: Date = new Date(),
-): number {
-  let streak = 0
-
-  for (let offset = 0; offset < HISTORY_DAYS; offset++) {
-    const date = addDays(today, -offset)
-    const limit = endOfDay(date)
-    const weekday = getWeekday(date)
-
-    const due = tasks.filter(
-      (task) =>
-        task.repeats && task.createdAt <= limit && isScheduledOn(task, weekday),
-    )
-    if (due.length === 0) continue
-
-    const completedIds = history[getTodayKey(date)] ?? []
-    const allDone =
-      offset === 0
-        ? due.every(isTaskDone)
-        : due.every((task) => completedIds.includes(task.id))
-
-    if (allDone) {
-      streak++
-      continue
-    }
-
-    if (offset === 0) continue
-    break
-  }
-
-  return streak
-}
-
-// How much a streak stands out: none, just started, a week or a month.
-export function streakTier(streak: number): StreakTier {
-  if (streak <= 0) return 'none'
-  if (streak < STREAK_WEEK) return 'started'
-  if (streak < STREAK_MONTH) return 'week'
-  return 'month'
 }
 
 // On a day change what was met is archived and progress resets. If the day has

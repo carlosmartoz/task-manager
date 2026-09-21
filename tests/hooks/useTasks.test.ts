@@ -20,7 +20,7 @@ describe('useTasks', () => {
 
     act(() =>
       result.current.addTask({
-        title: '  Beber agua  ',
+        title: '  Drink water  ',
         target: 8,
         weekdays: [3, 1],
       }),
@@ -28,7 +28,7 @@ describe('useTasks', () => {
 
     expect(result.current.state.tasks).toHaveLength(1)
     expect(result.current.state.tasks[0]).toMatchObject({
-      title: 'Beber agua',
+      title: 'Drink water',
       target: 8,
       progress: 0,
       weekdays: [1, 3],
@@ -40,7 +40,7 @@ describe('useTasks', () => {
 
     act(() =>
       result.current.addTask({
-        title: 'Renovar el DNI',
+        title: 'Renew passport',
         repeats: false,
         target: 8,
         weekdays: [1, 3],
@@ -57,7 +57,7 @@ describe('useTasks', () => {
   it('turning a task into a one-off clears its target and its days', () => {
     const { result } = setup()
     act(() =>
-      result.current.addTask({ title: 'Agua', target: 8, weekdays: [1, 3] }),
+      result.current.addTask({ title: 'Water', target: 8, weekdays: [1, 3] }),
     )
     const id = result.current.state.tasks[0].id
 
@@ -81,7 +81,7 @@ describe('useTasks', () => {
 
   it('advances progress and resets to zero past the target', () => {
     const { result } = setup()
-    act(() => result.current.addTask({ title: 'Agua', target: 2 }))
+    act(() => result.current.addTask({ title: 'Water', target: 2 }))
     const id = result.current.state.tasks[0].id
 
     act(() => result.current.advanceTask(id))
@@ -96,7 +96,7 @@ describe('useTasks', () => {
 
   it('never leaves progress above a lowered target', () => {
     const { result } = setup()
-    act(() => result.current.addTask({ title: 'Agua', target: 8 }))
+    act(() => result.current.addTask({ title: 'Water', target: 8 }))
     const id = result.current.state.tasks[0].id
 
     act(() => result.current.advanceTask(id))
@@ -107,40 +107,40 @@ describe('useTasks', () => {
   })
 
   it('reorders by swapping two tasks by id', () => {
-    const { result } = setup(['Una', 'Dos', 'Tres'])
+    const { result } = setup(['One', 'Two', 'Three'])
     const [, second, third] = result.current.state.tasks
 
     act(() => result.current.swapTasks(third.id, second.id))
 
     expect(result.current.state.tasks.map((task) => task.title)).toEqual([
-      'Una',
-      'Tres',
-      'Dos',
+      'One',
+      'Three',
+      'Two',
     ])
   })
 
   it('returns a deleted task to its original position', () => {
-    const { result } = setup(['Una', 'Dos', 'Tres'])
+    const { result } = setup(['One', 'Two', 'Three'])
     const middle = result.current.state.tasks[1]
 
     act(() => result.current.removeTask(middle.id))
-    expect(result.current.state.tasks.map((task) => task.title)).toEqual(['Una', 'Tres'])
-    expect(result.current.pendingUndo?.task.title).toBe('Dos')
+    expect(result.current.state.tasks.map((task) => task.title)).toEqual(['One', 'Three'])
+    expect(result.current.pendingUndo?.task.title).toBe('Two')
 
     act(() => result.current.undoRemove())
     expect(result.current.state.tasks.map((task) => task.title)).toEqual([
-      'Una',
-      'Dos',
-      'Tres',
+      'One',
+      'Two',
+      'Three',
     ])
     expect(result.current.pendingUndo).toBeNull()
   })
 
   it('saves the state to localStorage', () => {
-    const { result } = setup(['Persistente'])
+    const { result } = setup(['Persisted'])
 
     const raw = localStorage.getItem(STORAGE_KEY)
-    expect(raw).toContain('Persistente')
+    expect(raw).toContain('Persisted')
     expect(result.current.state.tasks).toHaveLength(1)
   })
 })

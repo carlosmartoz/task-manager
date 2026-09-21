@@ -18,7 +18,7 @@ It runs entirely in the browser. No accounts, no server, no network. The data li
   Days a task was not due never break it.
 - **Manual order, undo and backup.** The list keeps your order, deleting leaves 6 seconds
   to bring the task back, and everything exports to JSON.
-- **Dark theme only**, and installable as a PWA with offline support.
+- **Dark theme only.** No switch and no light palette.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ task.
 ## Stack
 
 React 19 · TypeScript 6 · Vite 8 · Tailwind 4 · shadcn on Base UI · Tabler icons ·
-Vitest. The manifest and the service worker are hand written, with no PWA plugin.
+Vitest. A plain web app: no PWA, no service worker.
 
 Code conventions are in [CLAUDE.md](CLAUDE.md), and the design decisions, with their
 reasoning, in [docs/SPECS.md](docs/SPECS.md).

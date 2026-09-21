@@ -6,12 +6,11 @@ import type { Task } from '@/types'
 type TaskProgressProps = {
   task: Task
   onAdvance: () => void
-  disabled?: boolean
 }
 
 // With `target` 1 it is a checkbox; with a higher target, a read-only "3/8"
 // pill: the counter is moved by the + and − buttons of the row.
-export function TaskProgress({ task, onAdvance, disabled }: TaskProgressProps) {
+export function TaskProgress({ task, onAdvance }: TaskProgressProps) {
   const done = isTaskDone(task)
 
   if (task.target === 1) {
@@ -19,7 +18,6 @@ export function TaskProgress({ task, onAdvance, disabled }: TaskProgressProps) {
       <Checkbox
         checked={done}
         onCheckedChange={onAdvance}
-        disabled={disabled}
         aria-label={`Mark "${task.title}" as done`}
       />
     )

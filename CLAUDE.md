@@ -22,7 +22,7 @@ Before calling a change finished, `npm run check` has to pass in full.
 ## Stack
 
 React 19 · TypeScript 6 · Vite 8 · Tailwind 4 · shadcn on Base UI (`@base-ui/react`) ·
-Tabler icons · Vitest. PWA with a hand-written manifest and service worker.
+Tabler icons · Vitest.
 
 ## Layout
 
@@ -30,10 +30,11 @@ Tabler icons · Vitest. PWA with a hand-written manifest and service worker.
 src/
   components/
     ui/       shadcn generated; do not reformat
-    tasks/    TaskForm, TaskList, TaskItem, TaskProgress, WeekdayPicker
-    shell/    DataActions, UndoToast
+    tasks/    TaskForm, TaskSection, TaskList, TaskItem, TaskActions, TaskProgress,
+              WeekdayPicker, EmptyState
+    shell/    DataActions, GlobalStreak, UndoToast
   hooks/      useTasks (state), useTaskForm, useBackup
-  lib/        config, date, weekdays, tasks, storage, download, utils
+  lib/        config, date, weekdays, tasks, streaks, storage, download, utils
   types/      one type per file, re-exported from index.ts
 tests/        mirrors the src/ tree
 ```

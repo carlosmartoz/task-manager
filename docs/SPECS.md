@@ -18,7 +18,7 @@ list is reused.
 1. **Simplicity over completeness.** When in doubt, the option with less code.
 2. **Zero friction.** Opening the app and adding a task should cost one gesture. No login,
    no configuration, no loading screen.
-3. **Works without a network.** The data belongs to the user and lives in their browser.
+3. **No network for the data.** It belongs to the user and lives in their browser.
 4. **Accessible by default.** Keyboard and screen reader are requirements, not extras.
 5. **Nothing is lost by accident.** Every deletion can be undone and the whole state can
    be exported.
@@ -35,7 +35,8 @@ list is reused.
 | Automatic daily reset | Statistics or progress charts |
 | Undo deletion | Attachments, long notes |
 | JSON export / import | Collaboration |
-| Installable and offline (PWA) | Light theme or a theme switch |
+|  | Light theme or a theme switch |
+|  | Installable or offline (PWA) |
 
 What is "out" is not forbidden forever, but adding it takes a conversation first: each of
 those features breaks one of the five principles.
@@ -46,8 +47,8 @@ those features breaks one of the five principles.
 - **No external state manager.** `useState` plus one hook of our own is enough and will
   stay enough while the scope does not change.
 - **No date library.** `Intl` and the native `Date` API cover the use case.
-- **No PWA plugin.** The manifest and the service worker are hand written (~60 lines)
-  because the case is simple and a build dependency is not justified.
+- **No PWA.** It is a plain web app: no manifest, no service worker and nothing cached or
+  installed. It is served over HTTP and needs the network to load.
 - **No new dependencies** without explicit justification.
 
 ---
@@ -124,11 +125,14 @@ Guaranteed in the hook and in `lib/`, never in the components:
 ## 3. Architecture
 
 ```
-main.tsx  ── registers the service worker in production
+main.tsx  ── mounts the app
 └── App.tsx ────────── useTasks()  ← the single source of truth
     ├── tasks/TaskForm ───── useTaskForm      (creates and edits)
     │                     └─ tasks/WeekdayPicker
-    ├── tasks/TaskList ───── tasks/TaskItem ─── tasks/TaskProgress
+    ├── tasks/TaskSection ── tasks/TaskList ─── tasks/TaskItem ─┬─ tasks/TaskProgress
+    │                                                          └─ tasks/TaskActions
+    ├── tasks/EmptyState
+    ├── shell/GlobalStreak
     ├── shell/DataActions ── useBackup   (export / import)
     └── shell/UndoToast
 ```
@@ -143,7 +147,8 @@ and signal intent through callbacks. No component reads or writes `localStorage`
 | [`lib/config.ts`](../src/lib/config.ts) | Domain constants and storage keys | Hold logic |
 | [`lib/date.ts`](../src/lib/date.ts) | Day keys and date formatting | Know anything about tasks |
 | [`lib/weekdays.ts`](../src/lib/weekdays.ts) | Labels, selection and weekly scheduling | Touch progress |
-| [`lib/tasks.ts`](../src/lib/tasks.ts) | **Pure** domain logic: progress, reset, streaks, order | Touch `localStorage` or React |
+| [`lib/tasks.ts`](../src/lib/tasks.ts) | **Pure** domain logic: create, edit, progress, reset, order | Touch `localStorage` or React |
+| [`lib/streaks.ts`](../src/lib/streaks.ts) | Per-task and global streaks, and their tiers | Write to the state |
 | [`lib/storage.ts`](../src/lib/storage.ts) | Serialize, validate, migrate, back up | Hold business rules |
 | [`lib/download.ts`](../src/lib/download.ts) | Hand a piece of text over as a file | Know what is being downloaded |
 | [`hooks/useTasks.ts`](../src/hooks/useTasks.ts) | State, invariants, persistence, undo | Hold JSX or style classes |
@@ -227,7 +232,7 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - `weekdays: []` means every day. The picker shows all seven marked in that case and
   normalizes back to `[]` when the user activates them all.
 - Tasks not due today **do not appear in the main list**. They are grouped into a
-  collapsible "N tasks from other days" section, where they show dimmed and without the
+  collapsible "Other days" section (a native `<details>`), where they show dimmed and without the
   progress control, but stay editable, reorderable and deletable.
 - A day the task was not due **does not break the streak**: it is skipped.
 
@@ -302,17 +307,6 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - The `dark` class stays hardcoded on `<html>` for one reason: the shadcn primitives ship
   `dark:` variants that hang off the `@custom-variant dark (&:is(.dark *))` selector. It
   is not a switch and nothing toggles it.
-
-### 5.8 PWA and installation
-
-- `public/manifest.webmanifest` makes it installable; `public/sw.js` provides offline use.
-- **Service worker strategy:** Vite's assets are hashed, so for them the cache never goes
-  stale and is served first. Navigation goes to the network first, with the cached copy as
-  the fallback, so new deploys get picked up.
-- It only registers in production: in development it would serve cached builds and be
-  confusing.
-- **Known limitation:** the manifest icons are the `favicon.svg`. Android's maskable icon
-  would want a 512×512 PNG.
 
 ---
 
@@ -414,8 +408,9 @@ that is not obvious on reading:
 | Covered | Why |
 |---|---|
 | `advanceProgress`, `normalizeTarget` | The counter cycle and the clamp are the heart of the model |
+| `createTask`, `patchTask` | Where a one-off loses its schedule and progress is clamped |
 | `applyDailyReset` | Archives history and resets; hard to test by hand |
-| `computeStreak` | Subtle rules: skipped days, the current day, the creation date |
+| `computeStreak`, `computeGlobalStreak` | Subtle rules: skipped days, the current day, the creation date |
 | `sanitizeState` | v1 → v2 migration and defence against corrupt data |
 | `parseBackup` | External input: the least trustworthy surface there is |
 | `toggleWeekday` | Empty and all seven days mean the same; the normalization is subtle |
@@ -494,7 +489,6 @@ empty state and local persistence.
 
 | Task | Note |
 |---|---|
-| 512×512 PNG icon for the manifest | The custom SVG is in place; Android will not take it as `maskable` and wants the PNG |
 | Prettier | It would formalize the style in section 6; `src/components/ui/` has to be excluded |
 
 The oxlint warning in [`button.tsx`](../src/components/ui/button.tsx)

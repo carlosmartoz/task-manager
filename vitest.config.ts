@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    // tests/ refleja el árbol de src/ que cubre.
+    // tests/ mirrors the src/ tree it covers.
     include: ['tests/**/*.test.{ts,tsx}'],
   },
 })

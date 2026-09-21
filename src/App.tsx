@@ -1,19 +1,16 @@
 import { useMemo, useState } from 'react'
-import { IconChecklist, IconFlame } from '@tabler/icons-react'
 
 import { DataActions } from '@/components/shell/DataActions'
+import { GlobalStreak } from '@/components/shell/GlobalStreak'
 import { UndoToast } from '@/components/shell/UndoToast'
+import { EmptyState } from '@/components/tasks/EmptyState'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
+import { TaskSection } from '@/components/tasks/TaskSection'
 import { useTasks } from '@/hooks/useTasks'
 import { formatLongDate } from '@/lib/date'
-import {
-  computeGlobalStreak,
-  computeStreak,
-  isTaskDone,
-  splitByRepeat,
-  splitByWeekday,
-} from '@/lib/tasks'
+import { computeGlobalStreak, computeStreak } from '@/lib/streaks'
+import { countDone, groupForToday } from '@/lib/tasks'
 import { getWeekday } from '@/lib/weekdays'
 import type { TaskPatch } from '@/types'
 
@@ -36,14 +33,7 @@ function App() {
   const { tasks, history } = state
   // A task deleted while being edited simply sends the form back to creating.
   const editing = tasks.find((task) => task.id === editingId)
-  const { today: todayTasks, others: otherTasks } = splitByWeekday(
-    tasks,
-    getWeekday(),
-  )
-  // A one-off is always due, so it gets its own card instead of today's.
-  const { habits, oneOffs } = splitByRepeat(todayTasks)
-  const completed = habits.filter(isTaskDone).length
-  const completedOneOffs = oneOffs.filter(isTaskDone).length
+  const { habits, oneOffs, others } = groupForToday(tasks, getWeekday())
 
   const streaks = useMemo(
     () =>
@@ -82,15 +72,7 @@ function App() {
           </div>
 
           <div className="flex items-center gap-1">
-            {globalStreak > 0 && (
-              <span
-                className="mr-1 flex items-center gap-1 text-sm font-semibold text-muted-foreground"
-                title={`${globalStreak} ${globalStreak === 1 ? 'day' : 'days'} completing every task`}
-              >
-                <IconFlame className="size-4.5" />
-                {globalStreak}
-              </span>
-            )}
+            <GlobalStreak streak={globalStreak} />
             <DataActions state={state} onImport={replaceState} />
           </div>
         </header>
@@ -111,37 +93,13 @@ function App() {
 
           <div className="min-w-0 space-y-5">
             {tasks.length === 0 ? (
-              <section className="card flex flex-col items-center gap-4 p-8 text-center sm:p-12">
-                <span className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
-                  <IconChecklist className="size-7" />
-                </span>
-
-                <div className="space-y-2">
-                  <h2 className="text-xl font-bold tracking-tight">
-                    Nothing here yet
-                  </h2>
-                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    Use the form to write down the habits you want to keep. What
-                    you do today shows up here, and starts over tomorrow.
-                  </p>
-                </div>
-
-                <p className="text-xs text-subtle-foreground">
-                  Already have a backup? Use{' '}
-                  <span className="text-muted-foreground">Import</span> at the
-                  top.
-                </p>
-              </section>
+              <EmptyState />
             ) : (
               <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-                <section className="card h-fit min-w-0 p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-lg font-bold">Repetitive tasks</h2>
-                    <p className="text-sm text-subtle-foreground">
-                      {completed} of {habits.length} done
-                    </p>
-                  </div>
-
+                <TaskSection
+                  title="Repetitive tasks"
+                  summary={`${countDone(habits)} of ${habits.length} done`}
+                >
                   {habits.length === 0 ? (
                     <div className="mt-3 grid place-items-center rounded-2xl border border-dashed border-border py-12 text-center text-sm text-subtle-foreground">
                       Nothing is due today. Enjoy the day.
@@ -149,35 +107,27 @@ function App() {
                   ) : (
                     <TaskList tasks={habits} {...listProps} />
                   )}
-                </section>
+                </TaskSection>
 
                 {oneOffs.length > 0 && (
-                  <section className="card h-fit min-w-0 p-4 sm:p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h2 className="text-lg font-bold">Unique tasks</h2>
-                      <p className="text-sm text-subtle-foreground">
-                        {completedOneOffs} of {oneOffs.length} done
-                      </p>
-                    </div>
-
+                  <TaskSection
+                    title="Unique tasks"
+                    summary={`${countDone(oneOffs)} of ${oneOffs.length} done`}
+                  >
                     <TaskList tasks={oneOffs} {...listProps} />
-                  </section>
+                  </TaskSection>
                 )}
               </div>
             )}
 
-            {otherTasks.length > 0 && (
-              <section className="card min-w-0 p-4 sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-bold">Other days</h2>
-                  <p className="text-sm text-subtle-foreground">
-                    {otherTasks.length}{' '}
-                    {otherTasks.length === 1 ? 'task' : 'tasks'}
-                  </p>
-                </div>
-
-                <TaskList tasks={otherTasks} dimmed {...listProps} />
-              </section>
+            {others.length > 0 && (
+              <TaskSection
+                title="Other days"
+                summary={`${others.length} ${others.length === 1 ? 'task' : 'tasks'}`}
+                collapsible
+              >
+                <TaskList tasks={others} dimmed {...listProps} />
+              </TaskSection>
             )}
           </div>
         </div>

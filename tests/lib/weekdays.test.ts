@@ -4,6 +4,7 @@ import {
   formatWeekdays,
   isScheduledOn,
   selectedWeekdays,
+  sortWeekdays,
   toggleWeekday,
 } from '@/lib/weekdays'
 import type { Task, Weekday } from '@/types'
@@ -13,7 +14,7 @@ const ALL: Weekday[] = [1, 2, 3, 4, 5, 6, 0]
 function makeTask(weekdays: Weekday[], repeats = true): Task {
   return {
     id: 'task-1',
-    title: 'Beber agua',
+    title: 'Drink water',
     repeats,
     target: 1,
     progress: 0,
@@ -61,7 +62,7 @@ describe('toggleWeekday', () => {
 
 describe('selectedWeekdays', () => {
   it('shows all seven days when none are marked', () => {
-    expect(selectedWeekdays([]).sort()).toEqual([...ALL].sort())
+    expect(selectedWeekdays([])).toEqual(ALL)
   })
 
   it('respects the selection when there is one', () => {
@@ -76,5 +77,11 @@ describe('formatWeekdays', () => {
 
   it('uses the short labels in reading order', () => {
     expect(formatWeekdays([5, 1, 3])).toBe('Mo · We · Fr')
+  })
+})
+
+describe('sortWeekdays', () => {
+  it('drops duplicates and sorts numerically, Sunday first', () => {
+    expect(sortWeekdays([5, 0, 3, 5, 1])).toEqual([0, 1, 3, 5])
   })
 })

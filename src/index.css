@@ -10,19 +10,6 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Inter Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -75,19 +62,6 @@
     --input: #2e2e2e;
     --ring: #737373;
     --radius: 0.5rem;
-    --chart-1: #ededed;
-    --chart-2: #a3a3a3;
-    --chart-3: #737373;
-    --chart-4: #454545;
-    --chart-5: #2e2e2e;
-    --sidebar: #141414;
-    --sidebar-foreground: #f5f5f5;
-    --sidebar-primary: #ededed;
-    --sidebar-primary-foreground: #0a0a0a;
-    --sidebar-accent: #1e1e1e;
-    --sidebar-accent-foreground: #f5f5f5;
-    --sidebar-border: #2e2e2e;
-    --sidebar-ring: #737373;
 }
 
 @theme {
@@ -116,21 +90,21 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground antialiased;
+    body {
+        @apply bg-background text-foreground antialiased;
     }
-  html {
-    @apply font-sans;
+    html {
+        @apply font-sans;
     }
-  button:not(:disabled), [role="button"]:not(:disabled) {
-    cursor: pointer;
+    button:not(:disabled), [role="button"]:not(:disabled) {
+        cursor: pointer;
     }
-  ::selection {
-    background: var(--ring);
-    color: var(--foreground);
+    ::selection {
+        background: var(--ring);
+        color: var(--foreground);
     }
 }
 

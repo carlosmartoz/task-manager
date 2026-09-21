@@ -5,9 +5,10 @@ import { loadState, saveState } from '@/lib/storage'
 import {
   advanceProgress,
   applyDailyReset,
-  clamp,
+  createTask,
+  decrementProgress,
   moveItem,
-  scheduleOf,
+  patchTask,
 } from '@/lib/tasks'
 import type { NewTask, PendingUndo, Task, TaskPatch, TasksState } from '@/types'
 
@@ -52,48 +53,16 @@ export function useTasks() {
     }))
   }, [])
 
-  const addTask = useCallback(
-    ({ title, repeats = true, target = 1, weekdays = [] }: NewTask) => {
-      const trimmed = title.trim()
-      if (!trimmed) return
+  const addTask = useCallback((input: NewTask) => {
+    const task = createTask(input)
+    if (!task) return
 
-      const task: Task = {
-        id: crypto.randomUUID(),
-        title: trimmed,
-        repeats,
-        ...scheduleOf(repeats, target, weekdays),
-        progress: 0,
-        createdAt: Date.now(),
-      }
-
-      setState((prev) => ({ ...prev, tasks: [...prev.tasks, task] }))
-    },
-    [],
-  )
+    setState((prev) => ({ ...prev, tasks: [...prev.tasks, task] }))
+  }, [])
 
   const editTask = useCallback(
     (id: string, patch: TaskPatch) => {
-      updateTask(id, (task) => {
-        const title = patch.title === undefined ? task.title : patch.title.trim()
-        if (!title) return task
-
-        const repeats = patch.repeats === undefined ? task.repeats : patch.repeats
-        const { target, weekdays } = scheduleOf(
-          repeats,
-          patch.target === undefined ? task.target : patch.target,
-          patch.weekdays === undefined ? task.weekdays : patch.weekdays,
-        )
-
-        return {
-          ...task,
-          title,
-          repeats,
-          target,
-          weekdays,
-          // Lowering the target must not leave progress above it.
-          progress: clamp(task.progress, 0, target),
-        }
-      })
+      updateTask(id, (task) => patchTask(task, patch))
     },
     [updateTask],
   )
@@ -107,10 +76,7 @@ export function useTasks() {
 
   const decrementTask = useCallback(
     (id: string) => {
-      updateTask(id, (task) => ({
-        ...task,
-        progress: Math.max(task.progress - 1, 0),
-      }))
+      updateTask(id, (task) => ({ ...task, progress: decrementProgress(task) }))
     },
     [updateTask],
   )

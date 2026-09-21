@@ -4,9 +4,10 @@ import {
   MIN_TARGET,
   STORAGE_KEY,
 } from '@/lib/config'
-import { getTodayKey } from '@/lib/date'
-import { normalizeTarget, pruneHistory } from '@/lib/tasks'
-import type { DayKey, Task, TasksState, Weekday } from '@/types'
+import { getTodayKey, isDayKey } from '@/lib/date'
+import { clamp, pruneHistory, scheduleOf } from '@/lib/tasks'
+import { sortWeekdays } from '@/lib/weekdays'
+import type { Task, TaskHistory, TasksState, Weekday } from '@/types'
 
 function emptyState(): TasksState {
   return { tasks: [], lastResetDate: getTodayKey(), history: {} }
@@ -19,11 +20,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function sanitizeWeekdays(value: unknown): Weekday[] {
   if (!Array.isArray(value)) return []
 
-  const days = value.filter(
-    (day): day is Weekday => Number.isInteger(day) && day >= 0 && day <= 6,
+  return sortWeekdays(
+    value.filter(
+      (day): day is Weekday => Number.isInteger(day) && day >= 0 && day <= 6,
+    ),
   )
-
-  return [...new Set(days)].sort()
 }
 
 // Returns `null` when the value cannot be recovered as a task.
@@ -33,8 +34,13 @@ function sanitizeTask(value: unknown): Task | null {
   const title = typeof value.title === 'string' ? value.title.trim() : ''
   if (!title) return null
 
-  const target = normalizeTarget(
-    typeof value.target === 'number' ? value.target : 1,
+  // Anything stored before one-off tasks existed was a habit.
+  const repeats = value.repeats !== false
+  // The same rule as creating and editing, so a one-off loses its schedule here too.
+  const { target, weekdays } = scheduleOf(
+    repeats,
+    typeof value.target === 'number' ? value.target : MIN_TARGET,
+    sanitizeWeekdays(value.weekdays),
   )
 
   // v1 format: `done: boolean` instead of `progress`.
@@ -45,26 +51,24 @@ function sanitizeTask(value: unknown): Task | null {
         ? target
         : 0
 
-  // Anything stored before one-off tasks existed was a habit.
-  const repeats = value.repeats !== false
-
   return {
     id: typeof value.id === 'string' && value.id ? value.id : crypto.randomUUID(),
     title,
     repeats,
-    target: repeats ? target : MIN_TARGET,
-    progress: Math.min(Math.max(Math.round(rawProgress) || 0, 0), target),
-    weekdays: repeats ? sanitizeWeekdays(value.weekdays) : [],
+    target,
+    // Clamped against the final target, which a one-off lowers to 1.
+    progress: clamp(Math.round(rawProgress) || 0, 0, target),
+    weekdays,
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : Date.now(),
   }
 }
 
-function sanitizeHistory(value: unknown): Record<DayKey, string[]> {
+function sanitizeHistory(value: unknown): TaskHistory {
   if (!isRecord(value)) return {}
 
   const entries = Object.entries(value).filter(
     (entry): entry is [string, string[]] =>
-      /^\d{4}-\d{2}-\d{2}$/.test(entry[0]) &&
+      isDayKey(entry[0]) &&
       Array.isArray(entry[1]) &&
       entry[1].every((id) => typeof id === 'string'),
   )
@@ -83,10 +87,10 @@ export function sanitizeState(value: unknown): TasksState {
     tasks: source.tasks
       .map(sanitizeTask)
       .filter((task): task is Task => task !== null),
-    lastResetDate:
-      typeof source.lastResetDate === 'string'
-        ? source.lastResetDate
-        : getTodayKey(),
+    // A malformed date would be archived as a history key that is never pruned.
+    lastResetDate: isDayKey(source.lastResetDate)
+      ? source.lastResetDate
+      : getTodayKey(),
     history: sanitizeHistory(source.history),
   }
 }

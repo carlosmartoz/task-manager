@@ -13,6 +13,11 @@ export const WEEKDAYS: { value: Weekday; short: string; long: string }[] = [
 
 const ALL_DAYS = WEEKDAYS.map(({ value }) => value)
 
+// Unique and in `Date.getDay()` order, so equal selections compare equal.
+export function sortWeekdays(weekdays: Weekday[]): Weekday[] {
+  return [...new Set(weekdays)].sort((a, b) => a - b)
+}
+
 export function getWeekday(date: Date = new Date()): Weekday {
   return date.getDay() as Weekday
 }
@@ -35,7 +40,7 @@ export function formatWeekdays(weekdays: Weekday[]): string {
 // Empty and all seven days mean the same thing, so a full selection is
 // normalized back to empty. Dropping to zero days is not allowed.
 export function toggleWeekday(weekdays: Weekday[], day: Weekday): Weekday[] {
-  const current = weekdays.length === 0 ? ALL_DAYS : weekdays
+  const current = selectedWeekdays(weekdays)
   const next = current.includes(day)
     ? current.filter((candidate) => candidate !== day)
     : [...current, day]
@@ -43,10 +48,11 @@ export function toggleWeekday(weekdays: Weekday[], day: Weekday): Weekday[] {
   if (next.length === 0) return weekdays
   if (next.length === ALL_DAYS.length) return []
 
-  return [...next].sort((a, b) => a - b)
+  return sortWeekdays(next)
 }
 
-// The days the picker should render as active.
+// The days the picker should render as active. A copy, so no caller can
+// reorder the shared list.
 export function selectedWeekdays(weekdays: Weekday[]): Weekday[] {
-  return weekdays.length === 0 ? ALL_DAYS : weekdays
+  return weekdays.length === 0 ? [...ALL_DAYS] : weekdays
 }

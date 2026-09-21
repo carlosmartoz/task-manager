@@ -3,15 +3,16 @@ import { describe, expect, it } from 'vitest'
 import {
   advanceProgress,
   applyDailyReset,
-  computeGlobalStreak,
-  computeStreak,
+  countDone,
+  createTask,
+  decrementProgress,
+  groupForToday,
   isTaskDone,
   moveItem,
   normalizeTarget,
+  patchTask,
   pruneHistory,
   scheduleOf,
-  splitByRepeat,
-  streakTier,
 } from '@/lib/tasks'
 import type { Task, TasksState } from '@/types'
 
@@ -21,7 +22,7 @@ const MONDAY = new Date(2024, 0, 8)
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1',
-    title: 'Beber agua',
+    title: 'Drink water',
     repeats: true,
     target: 1,
     progress: 0,
@@ -42,6 +43,18 @@ describe('isTaskDone', () => {
   })
 })
 
+describe('countDone', () => {
+  it('counts only the tasks that met their target', () => {
+    const tasks = [
+      makeTask({ target: 2, progress: 2 }),
+      makeTask({ target: 2, progress: 1 }),
+      makeTask({ target: 1, progress: 1 }),
+    ]
+
+    expect(countDone(tasks)).toBe(2)
+  })
+})
+
 describe('advanceProgress', () => {
   it('adds one repetition up to the target, then resets to zero', () => {
     expect(advanceProgress(makeTask({ target: 3, progress: 0 }))).toBe(1)
@@ -55,6 +68,13 @@ describe('advanceProgress', () => {
   })
 })
 
+describe('decrementProgress', () => {
+  it('subtracts one and never goes below zero', () => {
+    expect(decrementProgress(makeTask({ target: 3, progress: 2 }))).toBe(1)
+    expect(decrementProgress(makeTask({ target: 3, progress: 0 }))).toBe(0)
+  })
+})
+
 describe('normalizeTarget', () => {
   it('clamps to the allowed range and rounds', () => {
     expect(normalizeTarget(0)).toBe(1)
@@ -62,6 +82,71 @@ describe('normalizeTarget', () => {
     expect(normalizeTarget(1000)).toBe(99)
     expect(normalizeTarget(3.6)).toBe(4)
     expect(normalizeTarget(Number.NaN)).toBe(1)
+  })
+})
+
+describe('scheduleOf', () => {
+  it('keeps the target and sorts the days of a repeating task', () => {
+    expect(scheduleOf(true, 3.4, [5, 1])).toEqual({ target: 3, weekdays: [1, 5] })
+  })
+
+  it('strips both from a one-off', () => {
+    expect(scheduleOf(false, 8, [1, 5])).toEqual({ target: 1, weekdays: [] })
+  })
+})
+
+describe('createTask', () => {
+  it('trims the title and normalizes the schedule', () => {
+    const task = createTask(
+      { title: '  Drink water  ', target: 8, weekdays: [3, 1] },
+      'id-1',
+      42,
+    )
+
+    expect(task).toEqual({
+      id: 'id-1',
+      title: 'Drink water',
+      repeats: true,
+      target: 8,
+      progress: 0,
+      weekdays: [1, 3],
+      createdAt: 42,
+    })
+  })
+
+  it('creates nothing from a blank title', () => {
+    expect(createTask({ title: '   ' })).toBeNull()
+  })
+})
+
+describe('patchTask', () => {
+  it('changes only the fields in the patch', () => {
+    const task = makeTask({ target: 8, weekdays: [1] })
+
+    expect(patchTask(task, { title: ' Read ' })).toEqual({ ...task, title: 'Read' })
+  })
+
+  it('ignores a blank title and returns the same task', () => {
+    const task = makeTask()
+
+    expect(patchTask(task, { title: '   ', target: 5 })).toBe(task)
+  })
+
+  it('clamps progress to a lowered target', () => {
+    const task = makeTask({ target: 8, progress: 5 })
+
+    expect(patchTask(task, { target: 2 })).toMatchObject({ target: 2, progress: 2 })
+  })
+
+  it('turning a habit into a one-off strips its schedule', () => {
+    const task = makeTask({ target: 8, progress: 3, weekdays: [1, 3] })
+
+    expect(patchTask(task, { repeats: false })).toMatchObject({
+      repeats: false,
+      target: 1,
+      progress: 1,
+      weekdays: [],
+    })
   })
 })
 
@@ -78,46 +163,27 @@ describe('moveItem', () => {
   })
 })
 
+describe('groupForToday', () => {
+  it('splits habits due today, one-offs and other days, keeping the order', () => {
+    const tasks = [
+      makeTask({ id: 'daily' }),
+      makeTask({ id: 'one-off', repeats: false }),
+      makeTask({ id: 'friday', weekdays: [5] }),
+      makeTask({ id: 'monday', weekdays: [1] }),
+    ]
+
+    const { habits, oneOffs, others } = groupForToday(tasks, 1)
+
+    expect(habits.map((task) => task.id)).toEqual(['daily', 'monday'])
+    expect(oneOffs.map((task) => task.id)).toEqual(['one-off'])
+    expect(others.map((task) => task.id)).toEqual(['friday'])
+  })
+})
+
 describe('pruneHistory', () => {
   it('drops the days outside the window', () => {
     const history = { '2024-01-07': ['task-1'], '2020-01-01': ['task-1'] }
     expect(pruneHistory(history, MONDAY)).toEqual({ '2024-01-07': ['task-1'] })
-  })
-})
-
-describe('streakTier', () => {
-  it('grows with the streak, and nothing below one day', () => {
-    expect(streakTier(0)).toBe('none')
-    expect(streakTier(1)).toBe('started')
-    expect(streakTier(6)).toBe('started')
-    expect(streakTier(7)).toBe('week')
-    expect(streakTier(29)).toBe('week')
-    expect(streakTier(30)).toBe('month')
-  })
-})
-
-describe('splitByRepeat', () => {
-  it('separates habits from one-offs, keeping the order', () => {
-    const tasks = [
-      makeTask({ id: 'a' }),
-      makeTask({ id: 'b', repeats: false }),
-      makeTask({ id: 'c' }),
-    ]
-
-    const { habits, oneOffs } = splitByRepeat(tasks)
-
-    expect(habits.map((task) => task.id)).toEqual(['a', 'c'])
-    expect(oneOffs.map((task) => task.id)).toEqual(['b'])
-  })
-})
-
-describe('scheduleOf', () => {
-  it('keeps the target and sorts the days of a repeating task', () => {
-    expect(scheduleOf(true, 3.4, [5, 1])).toEqual({ target: 3, weekdays: [1, 5] })
-  })
-
-  it('strips both from a one-off', () => {
-    expect(scheduleOf(false, 8, [1, 5])).toEqual({ target: 1, weekdays: [] })
   })
 })
 
@@ -131,8 +197,8 @@ describe('applyDailyReset', () => {
     const state = makeState({
       lastResetDate: '2024-01-07',
       tasks: [
-        makeTask({ id: 'hecha', target: 2, progress: 2 }),
-        makeTask({ id: 'a-medias', target: 2, progress: 1 }),
+        makeTask({ id: 'done', target: 2, progress: 2 }),
+        makeTask({ id: 'halfway', target: 2, progress: 1 }),
       ],
     })
 
@@ -140,77 +206,22 @@ describe('applyDailyReset', () => {
 
     expect(next.lastResetDate).toBe('2024-01-08')
     expect(next.tasks.map((task) => task.progress)).toEqual([0, 0])
-    expect(next.history['2024-01-07']).toEqual(['hecha'])
+    expect(next.history['2024-01-07']).toEqual(['done'])
   })
 
   it('drops a one-off that was met and keeps a pending one', () => {
     const state = makeState({
       lastResetDate: '2024-01-07',
       tasks: [
-        makeTask({ id: 'suelta-hecha', repeats: false, progress: 1 }),
-        makeTask({ id: 'suelta-pendiente', repeats: false, progress: 0 }),
+        makeTask({ id: 'one-off-done', repeats: false, progress: 1 }),
+        makeTask({ id: 'one-off-pending', repeats: false, progress: 0 }),
       ],
     })
 
     const next = applyDailyReset(state, MONDAY)
 
-    expect(next.tasks.map((task) => task.id)).toEqual(['suelta-pendiente'])
+    expect(next.tasks.map((task) => task.id)).toEqual(['one-off-pending'])
     // A one-off has no streak, so it is not worth archiving either.
     expect(next.history['2024-01-07']).toEqual([])
-  })
-})
-
-describe('computeGlobalStreak', () => {
-  it('leaves one-off tasks out of the count', () => {
-    const tasks = [
-      makeTask({ id: 'habito', progress: 1 }),
-      makeTask({ id: 'suelta', repeats: false, progress: 0 }),
-    ]
-    const history = { '2024-01-07': ['habito'] }
-
-    expect(computeGlobalStreak(tasks, history, MONDAY)).toBe(2)
-  })
-})
-
-describe('computeStreak', () => {
-  it('is always zero for a one-off', () => {
-    const task = makeTask({ repeats: false, progress: 1 })
-    const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
-
-    expect(computeStreak(task, history, MONDAY)).toBe(0)
-  })
-
-  it('counts consecutive met days backwards', () => {
-    const task = makeTask({ progress: 1 })
-    const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
-
-    expect(computeStreak(task, history, MONDAY)).toBe(3)
-  })
-
-  it('an unfinished current day does not break the streak', () => {
-    const task = makeTask({ progress: 0 })
-    const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
-
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
-  })
-
-  it('a missed day cuts it', () => {
-    const task = makeTask({ progress: 1 })
-    const history = { '2024-01-07': ['task-1'], '2024-01-05': ['task-1'] }
-
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
-  })
-
-  it('days it was not due are skipped without breaking it', () => {
-    const task = makeTask({ weekdays: [1], progress: 1 })
-    const history = { '2024-01-01': ['task-1'] }
-
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
-  })
-
-  it('does not count days before the task existed', () => {
-    const task = makeTask({ progress: 1, createdAt: new Date(2024, 0, 8).getTime() })
-
-    expect(computeStreak(task, {}, MONDAY)).toBe(1)
   })
 })

@@ -1,9 +1,4 @@
-import type { Weekday } from '@/types/Weekday'
+import type { TaskPatch } from '@/types/TaskPatch'
 
-// What it takes to create a task; `addTask` fills in the rest.
-export type NewTask = {
-  title: string
-  repeats?: boolean
-  target?: number
-  weekdays?: Weekday[]
-}
+// What it takes to create a task; `createTask` fills in the rest.
+export type NewTask = TaskPatch & { title: string }

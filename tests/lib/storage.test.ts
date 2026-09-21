@@ -11,8 +11,8 @@ describe('sanitizeState', () => {
     const v1 = {
       lastResetDate: '2024-01-08',
       tasks: [
-        { id: 'a', title: 'Hecha', done: true, createdAt: 1 },
-        { id: 'b', title: 'Pendiente', done: false, createdAt: 2 },
+        { id: 'a', title: 'Done', done: true, createdAt: 1 },
+        { id: 'b', title: 'Pending', done: false, createdAt: 2 },
       ],
     }
 
@@ -21,7 +21,7 @@ describe('sanitizeState', () => {
     expect(state.tasks).toEqual([
       {
         id: 'a',
-        title: 'Hecha',
+        title: 'Done',
         repeats: true,
         target: 1,
         progress: 1,
@@ -30,7 +30,7 @@ describe('sanitizeState', () => {
       },
       {
         id: 'b',
-        title: 'Pendiente',
+        title: 'Pending',
         repeats: true,
         target: 1,
         progress: 0,
@@ -43,7 +43,7 @@ describe('sanitizeState', () => {
   it('a stored one-off keeps neither target nor days', () => {
     const state = sanitizeState({
       tasks: [
-        { id: 'a', title: 'Renovar el DNI', repeats: false, target: 8, weekdays: [1] },
+        { id: 'a', title: 'Renew passport', repeats: false, target: 8, weekdays: [1] },
       ],
     })
 
@@ -52,6 +52,20 @@ describe('sanitizeState', () => {
       target: 1,
       weekdays: [],
     })
+  })
+
+  it('clamps the progress of a stored one-off to its target of 1', () => {
+    const state = sanitizeState({
+      tasks: [{ id: 'a', title: 'Renew passport', repeats: false, target: 8, progress: 5 }],
+    })
+
+    expect(state.tasks[0]).toMatchObject({ target: 1, progress: 1 })
+  })
+
+  it('replaces a malformed last reset date with today', () => {
+    expect(sanitizeState({ tasks: [], lastResetDate: 'yesterday' }).lastResetDate).toBe(
+      TODAY,
+    )
   })
 
   it('drops tasks with no usable title', () => {
@@ -64,7 +78,7 @@ describe('sanitizeState', () => {
 
   it('clamps progress above the target and targets out of range', () => {
     const state = sanitizeState({
-      tasks: [{ id: 'a', title: 'Agua', target: 500, progress: 900 }],
+      tasks: [{ id: 'a', title: 'Water', target: 500, progress: 900 }],
     })
 
     expect(state.tasks[0].target).toBe(99)
@@ -73,7 +87,7 @@ describe('sanitizeState', () => {
 
   it('ignores invalid weekdays and removes duplicates', () => {
     const state = sanitizeState({
-      tasks: [{ id: 'a', title: 'Gym', weekdays: [1, 1, 9, -2, 'lunes', 3] }],
+      tasks: [{ id: 'a', title: 'Gym', weekdays: [1, 1, 9, -2, 'monday', 3] }],
     })
 
     expect(state.tasks[0].weekdays).toEqual([1, 3])
@@ -96,7 +110,7 @@ describe('parseBackup', () => {
     tasks: [
       {
         id: 'a',
-        title: 'Agua',
+        title: 'Water',
         repeats: true,
         target: 8,
         progress: 3,
