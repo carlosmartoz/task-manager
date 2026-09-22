@@ -29,6 +29,8 @@ type TaskItemProps = {
   isDragOver?: boolean
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
+  onSkip: (id: string) => void
+  onUnskip: (id: string) => void
   onStartEdit: (id: string) => void
   // Absent when the task is already first in the visible list.
   onMoveUp?: () => void
@@ -50,6 +52,8 @@ export function TaskItem({
   isDragOver = false,
   onAdvance,
   onDecrement,
+  onSkip,
+  onUnskip,
   onStartEdit,
   onMoveUp,
   onMoveDown,
@@ -60,6 +64,8 @@ export function TaskItem({
   onDrop,
 }: TaskItemProps) {
   const done = isTaskDone(task)
+  // Not due today or skipped: clicking the title has nothing to advance.
+  const canAdvance = !dimmed && !task.skipped
 
   function handleDrop(event: DragEvent<HTMLLIElement>) {
     event.preventDefault()
@@ -92,13 +98,14 @@ export function TaskItem({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <span
-          onClick={() => !dimmed && onAdvance(task.id)}
+          onClick={() => canAdvance && onAdvance(task.id)}
           // The full title on hover, since a long one is cut with an ellipsis.
           title={task.title}
           className={cn(
             'truncate text-sm font-medium text-foreground',
-            !dimmed && 'cursor-pointer',
+            canAdvance && 'cursor-pointer',
             done && 'text-muted-foreground line-through',
+            task.skipped && 'text-subtle-foreground line-through',
           )}
         >
           {task.title}
@@ -119,6 +126,7 @@ export function TaskItem({
             <span className="min-w-0 truncate">
               {formatWeekdays(task.weekdays)}
             </span>
+            {task.skipped && <span className="shrink-0">· Skipped today</span>}
           </p>
         )}
       </div>
@@ -128,6 +136,8 @@ export function TaskItem({
         dimmed={dimmed}
         onAdvance={onAdvance}
         onDecrement={onDecrement}
+        onSkip={onSkip}
+        onUnskip={onUnskip}
         onStartEdit={onStartEdit}
         onRemove={onRemove}
         onMoveUp={onMoveUp}

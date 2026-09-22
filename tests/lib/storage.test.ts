@@ -26,6 +26,7 @@ describe('sanitizeState', () => {
         target: 1,
         progress: 1,
         weekdays: [],
+        skipped: false,
         createdAt: 1,
       },
       {
@@ -35,6 +36,7 @@ describe('sanitizeState', () => {
         target: 1,
         progress: 0,
         weekdays: [],
+        skipped: false,
         createdAt: 2,
       },
     ])
@@ -98,6 +100,22 @@ describe('sanitizeState', () => {
     expect(sanitizeState({ tasks: 'nope' }).tasks).toEqual([])
   })
 
+  it('keeps a skip only on a habit that is not met yet', () => {
+    const state = sanitizeState({
+      tasks: [
+        { id: 'pending', title: 'Read', skipped: true },
+        { id: 'met', title: 'Walk', progress: 1, skipped: true },
+        { id: 'one-off', title: 'Call mum', repeats: false, skipped: true },
+      ],
+    })
+
+    expect(state.tasks.map((task) => task.skipped)).toEqual([true, false, false])
+  })
+
+  it('starts with no skip history when the data predates it', () => {
+    expect(sanitizeState({ tasks: [] }).skipHistory).toEqual({})
+  })
+
   it('keeps the history entries with valid date keys', () => {
     const state = sanitizeState({ tasks: [], history: { [TODAY]: ['a'], nope: ['b'] } })
 
@@ -115,11 +133,13 @@ describe('parseBackup', () => {
         target: 8,
         progress: 3,
         weekdays: [1, 5],
+        skipped: true,
         createdAt: 1,
       },
     ],
     lastResetDate: TODAY,
     history: { [TODAY]: ['a'] },
+    skipHistory: { [TODAY]: ['a'] },
   }
 
   it('restores a backup produced by the app itself', () => {

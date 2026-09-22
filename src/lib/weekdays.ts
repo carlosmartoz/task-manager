@@ -1,3 +1,4 @@
+import { currentDay } from '@/lib/date'
 import type { Task, Weekday } from '@/types'
 
 // In reading order, not `Date.getDay()` order: the week starts on Monday.
@@ -18,7 +19,7 @@ export function sortWeekdays(weekdays: Weekday[]): Weekday[] {
   return [...new Set(weekdays)].sort((a, b) => a - b)
 }
 
-export function getWeekday(date: Date = new Date()): Weekday {
+export function getWeekday(date: Date = currentDay()): Weekday {
   return date.getDay() as Weekday
 }
 

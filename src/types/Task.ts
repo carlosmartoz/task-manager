@@ -11,5 +11,7 @@ export type Task = {
   progress: number
   // Days the task is due. Empty = every day.
   weekdays: Weekday[]
+  // Set aside for today: the day neither counts towards its streak nor breaks it.
+  skipped: boolean
   createdAt: number
 }

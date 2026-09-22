@@ -19,6 +19,7 @@ function makeTask(weekdays: Weekday[], repeats = true): Task {
     target: 1,
     progress: 0,
     weekdays,
+    skipped: false,
     createdAt: 0,
   }
 }

@@ -10,7 +10,12 @@ import { sortWeekdays } from '@/lib/weekdays'
 import type { Task, TaskHistory, TasksState, Weekday } from '@/types'
 
 function emptyState(): TasksState {
-  return { tasks: [], lastResetDate: getTodayKey(), history: {} }
+  return {
+    tasks: [],
+    lastResetDate: getTodayKey(),
+    history: {},
+    skipHistory: {},
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -50,15 +55,18 @@ function sanitizeTask(value: unknown): Task | null {
       : value.done === true
         ? target
         : 0
+  // Clamped against the final target, which a one-off lowers to 1.
+  const progress = clamp(Math.round(rawProgress) || 0, 0, target)
 
   return {
     id: typeof value.id === 'string' && value.id ? value.id : crypto.randomUUID(),
     title,
     repeats,
     target,
-    // Clamped against the final target, which a one-off lowers to 1.
-    progress: clamp(Math.round(rawProgress) || 0, 0, target),
+    progress,
     weekdays,
+    // Only a habit not met yet can be skipped, the same rule as `canSkip`.
+    skipped: value.skipped === true && repeats && progress < target,
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : Date.now(),
   }
 }
@@ -92,6 +100,8 @@ export function sanitizeState(value: unknown): TasksState {
       ? source.lastResetDate
       : getTodayKey(),
     history: sanitizeHistory(source.history),
+    // Backups from before skipping existed have none.
+    skipHistory: sanitizeHistory(source.skipHistory),
   }
 }
 

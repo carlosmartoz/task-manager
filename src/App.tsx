@@ -10,7 +10,7 @@ import { TaskSection } from '@/components/tasks/TaskSection'
 import { useTasks } from '@/hooks/useTasks'
 import { formatLongDate } from '@/lib/date'
 import { computeGlobalStreak, computeStreak } from '@/lib/streaks'
-import { countDone, groupForToday } from '@/lib/tasks'
+import { countDone, countSkipped, groupForToday } from '@/lib/tasks'
 import { getWeekday } from '@/lib/weekdays'
 import type { TaskPatch } from '@/types'
 
@@ -22,6 +22,8 @@ function App() {
     editTask,
     advanceTask,
     decrementTask,
+    skipTask,
+    unskipTask,
     swapTasks,
     removeTask,
     undoRemove,
@@ -30,7 +32,7 @@ function App() {
   } = useTasks()
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const { tasks, history } = state
+  const { tasks, history, skipHistory } = state
   // A task deleted while being edited simply sends the form back to creating.
   const editing = tasks.find((task) => task.id === editingId)
   const { habits, oneOffs, others } = groupForToday(tasks, getWeekday())
@@ -38,14 +40,22 @@ function App() {
   const streaks = useMemo(
     () =>
       Object.fromEntries(
-        tasks.map((task) => [task.id, computeStreak(task, history)]),
+        tasks.map((task) => [
+          task.id,
+          computeStreak(task, history, skipHistory),
+        ]),
       ),
-    [tasks, history],
+    [tasks, history, skipHistory],
   )
   const globalStreak = useMemo(
-    () => computeGlobalStreak(tasks, history),
-    [tasks, history],
+    () => computeGlobalStreak(tasks, history, skipHistory),
+    [tasks, history, skipHistory],
   )
+
+  const skippedHabits = countSkipped(habits)
+  const habitsSummary = `${countDone(habits)} of ${habits.length} done${
+    skippedHabits > 0 ? ` · ${skippedHabits} skipped` : ''
+  }`
 
   function saveEdit(id: string, patch: TaskPatch) {
     editTask(id, patch)
@@ -57,6 +67,8 @@ function App() {
     editingId,
     onAdvance: advanceTask,
     onDecrement: decrementTask,
+    onSkip: skipTask,
+    onUnskip: unskipTask,
     onStartEdit: setEditingId,
     onSwap: swapTasks,
     onRemove: removeTask,
@@ -98,7 +110,7 @@ function App() {
               <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                 <TaskSection
                   title="Repetitive tasks"
-                  summary={`${countDone(habits)} of ${habits.length} done`}
+                  summary={habitsSummary}
                 >
                   {habits.length === 0 ? (
                     <div className="mt-3 grid place-items-center rounded-2xl border border-dashed border-border py-12 text-center text-sm text-subtle-foreground">

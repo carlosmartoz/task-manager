@@ -14,6 +14,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     target: 1,
     progress: 0,
     weekdays: [],
+    skipped: false,
     createdAt: new Date(2023, 0, 1).getTime(),
     ...overrides,
   }
@@ -24,41 +25,64 @@ describe('computeStreak', () => {
     const task = makeTask({ repeats: false, progress: 1 })
     const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
 
-    expect(computeStreak(task, history, MONDAY)).toBe(0)
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(0)
   })
 
   it('counts consecutive met days backwards', () => {
     const task = makeTask({ progress: 1 })
     const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
 
-    expect(computeStreak(task, history, MONDAY)).toBe(3)
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(3)
   })
 
   it('an unfinished current day does not break the streak', () => {
     const task = makeTask({ progress: 0 })
     const history = { '2024-01-07': ['task-1'], '2024-01-06': ['task-1'] }
 
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(2)
   })
 
   it('a missed day cuts it', () => {
     const task = makeTask({ progress: 1 })
     const history = { '2024-01-07': ['task-1'], '2024-01-05': ['task-1'] }
 
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(2)
   })
 
   it('days it was not due are skipped without breaking it', () => {
     const task = makeTask({ weekdays: [1], progress: 1 })
     const history = { '2024-01-01': ['task-1'] }
 
-    expect(computeStreak(task, history, MONDAY)).toBe(2)
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(2)
+  })
+
+  it('a skipped past day neither counts nor breaks it', () => {
+    const task = makeTask({ progress: 1 })
+    const history = { '2024-01-06': ['task-1'] }
+    const skipHistory = { '2024-01-07': ['task-1'] }
+
+    expect(computeStreak(task, history, skipHistory, MONDAY)).toBe(2)
+  })
+
+  it('skipping today keeps the streak as it was', () => {
+    const task = makeTask({ skipped: true })
+    const history = { '2024-01-07': ['task-1'] }
+
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(1)
+  })
+
+  it('counts a task created in the small hours towards the day before', () => {
+    // 2 a.m. on Monday still belongs to Sunday, which starts the chain.
+    const task = makeTask({ createdAt: new Date(2024, 0, 8, 2).getTime() })
+    const history = { '2024-01-07': ['task-1'] }
+
+    expect(computeStreak(task, history, {}, MONDAY)).toBe(1)
   })
 
   it('does not count days before the task existed', () => {
     const task = makeTask({ progress: 1, createdAt: new Date(2024, 0, 8).getTime() })
 
-    expect(computeStreak(task, {}, MONDAY)).toBe(1)
+    expect(computeStreak(task, {}, {}, MONDAY)).toBe(1)
   })
 })
 
@@ -70,7 +94,7 @@ describe('computeGlobalStreak', () => {
     ]
     const history = { '2024-01-07': ['habit'] }
 
-    expect(computeGlobalStreak(tasks, history, MONDAY)).toBe(2)
+    expect(computeGlobalStreak(tasks, history, {}, MONDAY)).toBe(2)
   })
 
   it('breaks on a past day where any due task was missed', () => {
@@ -80,14 +104,33 @@ describe('computeGlobalStreak', () => {
     ]
     const history = { '2024-01-07': ['water', 'read'], '2024-01-06': ['water'] }
 
-    expect(computeGlobalStreak(tasks, history, MONDAY)).toBe(2)
+    expect(computeGlobalStreak(tasks, history, {}, MONDAY)).toBe(2)
+  })
+
+  it('a skipped task does not break the day for the rest', () => {
+    const tasks = [
+      makeTask({ id: 'water', progress: 1 }),
+      makeTask({ id: 'gym', skipped: true }),
+    ]
+    const history = { '2024-01-07': ['water'] }
+    const skipHistory = { '2024-01-07': ['gym'] }
+
+    expect(computeGlobalStreak(tasks, history, skipHistory, MONDAY)).toBe(2)
+  })
+
+  it('skips days where everything due was skipped', () => {
+    const tasks = [makeTask({ progress: 1 })]
+    const history = { '2024-01-06': ['task-1'] }
+    const skipHistory = { '2024-01-07': ['task-1'] }
+
+    expect(computeGlobalStreak(tasks, history, skipHistory, MONDAY)).toBe(2)
   })
 
   it('skips days where nothing was due', () => {
     const tasks = [makeTask({ weekdays: [1], progress: 1 })]
     const history = { '2024-01-01': ['task-1'] }
 
-    expect(computeGlobalStreak(tasks, history, MONDAY)).toBe(2)
+    expect(computeGlobalStreak(tasks, history, {}, MONDAY)).toBe(2)
   })
 })
 

@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest'
 import {
   advanceProgress,
   applyDailyReset,
+  canSkip,
   countDone,
+  countSkipped,
   createTask,
   decrementProgress,
   groupForToday,
   isTaskDone,
+  markSkipped,
   moveItem,
   normalizeTarget,
   patchTask,
@@ -27,13 +30,20 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     target: 1,
     progress: 0,
     weekdays: [],
+    skipped: false,
     createdAt: new Date(2023, 0, 1).getTime(),
     ...overrides,
   }
 }
 
 function makeState(overrides: Partial<TasksState> = {}): TasksState {
-  return { tasks: [], lastResetDate: '2024-01-08', history: {}, ...overrides }
+  return {
+    tasks: [],
+    lastResetDate: '2024-01-08',
+    history: {},
+    skipHistory: {},
+    ...overrides,
+  }
 }
 
 describe('isTaskDone', () => {
@@ -65,6 +75,39 @@ describe('advanceProgress', () => {
   it('behaves like a checkbox when the target is 1', () => {
     expect(advanceProgress(makeTask({ target: 1, progress: 0 }))).toBe(1)
     expect(advanceProgress(makeTask({ target: 1, progress: 1 }))).toBe(0)
+  })
+
+  it('leaves a skipped task where it was', () => {
+    expect(advanceProgress(makeTask({ target: 3, progress: 1, skipped: true }))).toBe(1)
+  })
+})
+
+describe('canSkip', () => {
+  it('only lets a habit that is not met yet be skipped', () => {
+    expect(canSkip(makeTask({ target: 2, progress: 1 }))).toBe(true)
+    expect(canSkip(makeTask({ target: 2, progress: 2 }))).toBe(false)
+    expect(canSkip(makeTask({ repeats: false }))).toBe(false)
+  })
+})
+
+describe('markSkipped', () => {
+  it('skips and unskips a pending habit', () => {
+    const skipped = markSkipped(makeTask(), true)
+
+    expect(skipped.skipped).toBe(true)
+    expect(markSkipped(skipped, false).skipped).toBe(false)
+  })
+
+  it('refuses to skip a task that cannot be skipped', () => {
+    const met = makeTask({ progress: 1 })
+    expect(markSkipped(met, true)).toBe(met)
+  })
+})
+
+describe('countSkipped', () => {
+  it('counts only the skipped tasks', () => {
+    const tasks = [makeTask({ skipped: true }), makeTask(), makeTask({ skipped: true })]
+    expect(countSkipped(tasks)).toBe(2)
   })
 })
 
@@ -110,6 +153,7 @@ describe('createTask', () => {
       target: 8,
       progress: 0,
       weekdays: [1, 3],
+      skipped: false,
       createdAt: 42,
     })
   })
@@ -136,6 +180,14 @@ describe('patchTask', () => {
     const task = makeTask({ target: 8, progress: 5 })
 
     expect(patchTask(task, { target: 2 })).toMatchObject({ target: 2, progress: 2 })
+  })
+
+  it('drops the skip when the edit leaves nothing to skip', () => {
+    const task = makeTask({ target: 3, progress: 2, skipped: true })
+
+    expect(patchTask(task, { target: 2 }).skipped).toBe(false)
+    expect(patchTask(task, { repeats: false }).skipped).toBe(false)
+    expect(patchTask(task, { title: 'Read' }).skipped).toBe(true)
   })
 
   it('turning a habit into a one-off strips its schedule', () => {
@@ -207,6 +259,22 @@ describe('applyDailyReset', () => {
     expect(next.lastResetDate).toBe('2024-01-08')
     expect(next.tasks.map((task) => task.progress)).toEqual([0, 0])
     expect(next.history['2024-01-07']).toEqual(['done'])
+  })
+
+  it('archives what was skipped apart and clears the skip', () => {
+    const state = makeState({
+      lastResetDate: '2024-01-07',
+      tasks: [
+        makeTask({ id: 'skipped', skipped: true }),
+        makeTask({ id: 'done', progress: 1 }),
+      ],
+    })
+
+    const next = applyDailyReset(state, MONDAY)
+
+    expect(next.skipHistory['2024-01-07']).toEqual(['skipped'])
+    expect(next.history['2024-01-07']).toEqual(['done'])
+    expect(next.tasks.every((task) => !task.skipped)).toBe(true)
   })
 
   it('drops a one-off that was met and keeps a pending one', () => {

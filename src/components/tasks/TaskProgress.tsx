@@ -1,3 +1,5 @@
+import { IconPlayerSkipForward } from '@tabler/icons-react'
+
 import { Checkbox } from '@/components/ui/checkbox'
 import { isTaskDone, progressPercent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
@@ -12,6 +14,20 @@ type TaskProgressProps = {
 // pill: the counter is moved by the + and − buttons of the row.
 export function TaskProgress({ task, onAdvance }: TaskProgressProps) {
   const done = isTaskDone(task)
+
+  // Set aside for today: nothing to advance until it is unskipped.
+  if (task.skipped) {
+    return (
+      <span
+        role="img"
+        aria-label={`"${task.title}" skipped today`}
+        title="Skipped today"
+        className="grid size-4.5 place-items-center text-subtle-foreground"
+      >
+        <IconPlayerSkipForward className="size-4" />
+      </span>
+    )
+  }
 
   if (task.target === 1) {
     return (

@@ -12,6 +12,8 @@ type TaskListProps = {
   editingId?: string | null
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
+  onSkip: (id: string) => void
+  onUnskip: (id: string) => void
   onStartEdit: (id: string) => void
   onSwap: (id: string, otherId: string) => void
   onRemove: (id: string) => void
@@ -24,6 +26,8 @@ export function TaskList({
   editingId,
   onAdvance,
   onDecrement,
+  onSkip,
+  onUnskip,
   onStartEdit,
   onSwap,
   onRemove,
@@ -60,6 +64,8 @@ export function TaskList({
             isDragOver={overId === task.id && draggingId !== task.id}
             onAdvance={onAdvance}
             onDecrement={onDecrement}
+            onSkip={onSkip}
+            onUnskip={onUnskip}
             onStartEdit={onStartEdit}
             onMoveUp={previous ? () => onSwap(task.id, previous.id) : undefined}
             onMoveDown={next ? () => onSwap(task.id, next.id) : undefined}

@@ -14,7 +14,11 @@ export const STORAGE_KEY = 'daily-task-manager:v2'
 export const LEGACY_KEY = 'daily-task-manager:v1'
 
 // Version of the exported format; bump it when `TasksState` changes shape.
-export const BACKUP_VERSION = 3
+export const BACKUP_VERSION = 4
+
+// Hour the day starts, local time: until then a late night still belongs to
+// the day before.
+export const DAY_START_HOUR = 5
 
 // How often the day change is checked while the tab stays open.
 export const DAY_CHECK_INTERVAL = 30_000

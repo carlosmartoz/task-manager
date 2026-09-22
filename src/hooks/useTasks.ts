@@ -7,6 +7,7 @@ import {
   applyDailyReset,
   createTask,
   decrementProgress,
+  markSkipped,
   moveItem,
   patchTask,
 } from '@/lib/tasks'
@@ -81,6 +82,20 @@ export function useTasks() {
     [updateTask],
   )
 
+  const skipTask = useCallback(
+    (id: string) => {
+      updateTask(id, (task) => markSkipped(task, true))
+    },
+    [updateTask],
+  )
+
+  const unskipTask = useCallback(
+    (id: string) => {
+      updateTask(id, (task) => markSkipped(task, false))
+    },
+    [updateTask],
+  )
+
   // By id, not by position: the caller sees an order that may hide tasks
   // which are not due today.
   const swapTasks = useCallback((id: string, otherId: string) => {
@@ -145,6 +160,8 @@ export function useTasks() {
     editTask,
     advanceTask,
     decrementTask,
+    skipTask,
+    unskipTask,
     swapTasks,
     removeTask,
     undoRemove,

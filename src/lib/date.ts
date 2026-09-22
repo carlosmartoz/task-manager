@@ -1,9 +1,16 @@
+import { DAY_START_HOUR } from '@/lib/config'
 import type { DayKey } from '@/types'
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/
 
+// The day the app is living in, which starts at `DAY_START_HOUR` and not at
+// midnight: at 2 a.m. it is still yesterday.
+export function currentDay(now: Date = new Date()): Date {
+  return now.getHours() < DAY_START_HOUR ? addDays(now, -1) : new Date(now)
+}
+
 // Local-time day key (YYYY-MM-DD), used to detect the day change.
-export function getTodayKey(date: Date = new Date()): DayKey {
+export function getTodayKey(date: Date = currentDay()): DayKey {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -15,7 +22,7 @@ export function isDayKey(value: unknown): value is DayKey {
   return typeof value === 'string' && DAY_KEY.test(value)
 }
 
-export function formatLongDate(date: Date = new Date()): string {
+export function formatLongDate(date: Date = currentDay()): string {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     day: 'numeric',
@@ -30,9 +37,10 @@ export function addDays(date: Date, amount: number): Date {
   return result
 }
 
-// Last instant of the day, to tell whether a task already existed then.
+// Last instant of the day, to tell whether a task already existed then. The
+// day runs until `DAY_START_HOUR` of the next calendar date.
 export function endOfDay(date: Date): number {
-  const result = new Date(date)
-  result.setHours(23, 59, 59, 999)
+  const result = addDays(date, 1)
+  result.setHours(DAY_START_HOUR, 0, 0, -1)
   return result.getTime()
 }
