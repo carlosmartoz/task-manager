@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { DataActions } from '@/components/shell/DataActions'
-import { GlobalStreak } from '@/components/shell/GlobalStreak'
 import { UndoToast } from '@/components/shell/UndoToast'
 import { EmptyState } from '@/components/tasks/EmptyState'
 import { TaskForm } from '@/components/tasks/TaskForm'
@@ -9,8 +8,7 @@ import { TaskList } from '@/components/tasks/TaskList'
 import { TaskSection } from '@/components/tasks/TaskSection'
 import { useTasks } from '@/hooks/useTasks'
 import { formatLongDate } from '@/lib/date'
-import { computeGlobalStreak, computeStreak } from '@/lib/streaks'
-import { countDone, countSkipped, groupForToday } from '@/lib/tasks'
+import { countDone, groupForToday } from '@/lib/tasks'
 import { getWeekday } from '@/lib/weekdays'
 import type { TaskPatch } from '@/types'
 
@@ -22,8 +20,6 @@ function App() {
     editTask,
     advanceTask,
     decrementTask,
-    skipTask,
-    unskipTask,
     swapTasks,
     removeTask,
     undoRemove,
@@ -32,30 +28,10 @@ function App() {
   } = useTasks()
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const { tasks, history, skipHistory } = state
+  const { tasks } = state
   // A task deleted while being edited simply sends the form back to creating.
   const editing = tasks.find((task) => task.id === editingId)
   const { habits, oneOffs, others } = groupForToday(tasks, getWeekday())
-
-  const streaks = useMemo(
-    () =>
-      Object.fromEntries(
-        tasks.map((task) => [
-          task.id,
-          computeStreak(task, history, skipHistory),
-        ]),
-      ),
-    [tasks, history, skipHistory],
-  )
-  const globalStreak = useMemo(
-    () => computeGlobalStreak(tasks, history, skipHistory),
-    [tasks, history, skipHistory],
-  )
-
-  const skippedHabits = countSkipped(habits)
-  const habitsSummary = `${countDone(habits)} of ${habits.length} done${
-    skippedHabits > 0 ? ` · ${skippedHabits} skipped` : ''
-  }`
 
   function saveEdit(id: string, patch: TaskPatch) {
     editTask(id, patch)
@@ -63,12 +39,9 @@ function App() {
   }
 
   const listProps = {
-    streaks,
     editingId,
     onAdvance: advanceTask,
     onDecrement: decrementTask,
-    onSkip: skipTask,
-    onUnskip: unskipTask,
     onStartEdit: setEditingId,
     onSwap: swapTasks,
     onRemove: removeTask,
@@ -83,10 +56,7 @@ function App() {
             <p className="text-sm text-muted-foreground">{formatLongDate()}</p>
           </div>
 
-          <div className="flex items-center gap-1">
-            <GlobalStreak streak={globalStreak} />
-            <DataActions state={state} onImport={replaceState} />
-          </div>
+          <DataActions state={state} onImport={replaceState} />
         </header>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
@@ -110,7 +80,7 @@ function App() {
               <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                 <TaskSection
                   title="Repetitive tasks"
-                  summary={habitsSummary}
+                  summary={`${countDone(habits)} of ${habits.length} done`}
                 >
                   {habits.length === 0 ? (
                     <div className="mt-3 grid place-items-center rounded-2xl border border-dashed border-border py-12 text-center text-sm text-subtle-foreground">

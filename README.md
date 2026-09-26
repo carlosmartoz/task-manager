@@ -1,8 +1,8 @@
 # Task Manager
 
 A list of **daily habits**. Tasks are not deleted when you complete them: they carry over
-from one day to the next and, when the day changes, what you met is archived and progress
-returns to zero.
+from one day to the next and, when the day changes, progress returns to zero. Only today
+matters: there are no streaks to keep alive.
 
 It runs entirely in the browser. No accounts, no server, no network. The data lives in
 `localStorage` and the backup is a JSON file you export and import yourself.
@@ -14,8 +14,6 @@ It runs entirely in the browser. No accounts, no server, no network. The data li
   just the target-1 case, a checkbox.
 - **Weekdays.** *Gym on Monday, Wednesday and Friday*. Whatever is not due today is set
   aside in a collapsible section.
-- **Streaks.** Consecutive days meeting each task, plus a global streak of perfect days.
-  Days a task was not due never break it.
 - **Manual order, undo and backup.** The list keeps your order, deleting leaves 6 seconds
   to bring the task back, and everything exports to JSON.
 - **Dark theme only.** No switch and no light palette.

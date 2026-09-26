@@ -10,8 +10,10 @@
 A **daily habits** app for a single person.
 
 Unlike a classic to-do list, here tasks **are not deleted when completed**: they stand for
-routines. When the day changes they go back to pending, what was met is archived, and the
-list is reused.
+routines. When the day changes they go back to pending and the list is reused.
+
+**Today is all that matters.** There are no streaks, chains or records of past days: the
+app is there to help, not to make anyone feel they owe it a run of perfect days.
 
 **Principles that settle any decision:**
 
@@ -31,9 +33,9 @@ list is reused.
 | Repetition targets (`target`) | Backend, API, sync |
 | Weekdays per task | Multiple lists or projects |
 | Manual list order | Tags, priorities, subtasks |
-| Per-task and global streaks | Notifications, reminders |
-| Skipping a habit for a day | |
-| Automatic daily reset | Statistics or progress charts |
+| Automatic daily reset | Notifications, reminders |
+|  | Streaks, or any record of past days |
+|  | Statistics or progress charts |
 | Undo deletion | Attachments, long notes |
 | JSON export / import | Collaboration |
 |  | Light theme or a theme switch |
@@ -67,15 +69,12 @@ type Task = {
   target: number      // 1..99 repetitions needed. 1 = a plain task
   progress: number    // 0..target repetitions logged today
   weekdays: Weekday[] // empty = every day
-  skipped: boolean    // set aside for today; neither counts nor breaks the streak
   createdAt: number
 }
 
 type TasksState = {
   tasks: Task[]                      // array order is display order
   lastResetDate: DayKey
-  history: Record<DayKey, string[]>      // day → ids completed that day
-  skipHistory: Record<DayKey, string[]>  // day → ids skipped that day
 }
 ```
 
@@ -102,7 +101,6 @@ above — progress works the same either way — it only says how long the task 
 |---|---|---|
 | Schedule | `weekdays`, empty = every day | always due, until it is done |
 | Counter | `target` 1..99 | always 1 |
-| Streak | per-task and global | none; it is left out of both |
 | Day change | progress back to zero | if it was met, the task is gone |
 
 A one-off carries neither `weekdays` nor a `target` above 1: `scheduleOf` strips both when
@@ -121,8 +119,6 @@ Guaranteed in the hook and in `lib/`, never in the components:
   "every day", and the UI never allows leaving zero days marked: it would be
   indistinguishable from "every day".
 - A task with `repeats: false` always has `target: 1` and `weekdays: []`.
-- `skipped` is only ever `true` on a habit that is not met yet (`canSkip`). Editing it into
-  a one-off, or lowering the target until it is met, drops the skip.
 - `id` is unique and stable for the whole life of the task.
 
 ---
@@ -137,7 +133,6 @@ main.tsx  ── mounts the app
     ├── tasks/TaskSection ── tasks/TaskList ─── tasks/TaskItem ─┬─ tasks/TaskProgress
     │                                                          └─ tasks/TaskActions
     ├── tasks/EmptyState
-    ├── shell/GlobalStreak
     ├── shell/DataActions ── useBackup   (export / import)
     └── shell/UndoToast
 ```
@@ -153,7 +148,6 @@ and signal intent through callbacks. No component reads or writes `localStorage`
 | [`lib/date.ts`](../src/lib/date.ts) | Day keys and date formatting | Know anything about tasks |
 | [`lib/weekdays.ts`](../src/lib/weekdays.ts) | Labels, selection and weekly scheduling | Touch progress |
 | [`lib/tasks.ts`](../src/lib/tasks.ts) | **Pure** domain logic: create, edit, progress, reset, order | Touch `localStorage` or React |
-| [`lib/streaks.ts`](../src/lib/streaks.ts) | Per-task and global streaks, and their tiers | Write to the state |
 | [`lib/storage.ts`](../src/lib/storage.ts) | Serialize, validate, migrate, back up | Hold business rules |
 | [`lib/download.ts`](../src/lib/download.ts) | Hand a piece of text over as a file | Know what is being downloaded |
 | [`hooks/useTasks.ts`](../src/hooks/useTasks.ts) | State, invariants, persistence, undo | Hold JSX or style classes |
@@ -164,7 +158,7 @@ and signal intent through callbacks. No component reads or writes `localStorage`
 | [`types/`](../src/types/) | One domain type per file, with a barrel | Props types for a single component |
 
 **The rule that pays off most: anything that can be written as a pure function goes to
-`lib/`.** It is what makes the daily reset, the streaks and the progress clamp testable
+`lib/`.** It is what makes the daily reset and the progress clamp testable
 without mounting React or faking the passage of time. What needs React but no JSX — a
 form draft, the export/import cycle — goes in a hook, not inside the component.
 
@@ -182,16 +176,16 @@ they live in `useTaskForm`, shared by create and edit.
 **The day starts at 5 a.m. local time** (`DAY_START_HOUR`), not at midnight: a habit ticked
 at 1 a.m. still belongs to the day that is ending. `currentDay(now)` turns an instant into
 the app's day, and every "today" default (`getTodayKey`, `getWeekday`, `formatLongDate`,
-the reset and the streaks) goes through it. `endOfDay` follows suit, ending at 4:59:59.999
-of the next date.
+the reset) goes through it.
 
 `applyDailyReset(state, today)` is pure and returns **the same object** when the day has
 not changed, to avoid extra renders. When it has:
 
-1. Archives the ids of the completed tasks into `history[lastResetDate]` and those of the
-   skipped ones into `skipHistory[lastResetDate]`.
-2. Sets `progress: 0` and `skipped: false` on every task.
-3. Updates `lastResetDate` and prunes both histories.
+1. Drops the one-offs that were met.
+2. Sets `progress: 0` on every task.
+3. Updates `lastResetDate`.
+
+Nothing about the day that ends is kept.
 
 It is checked at three moments, to cover both the active tab and one that sat hours in the
 background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
@@ -206,16 +200,14 @@ background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
   the rest. A broken `localStorage` cannot take the app down.
 - **Fault-tolerant writes.** If `localStorage` is full or disabled, the session carries on
   in memory instead of breaking.
-- **Missing `skipped` / `skipHistory`.** Older data had neither: they sanitize to `false`
-  and `{}`. A stored skip is dropped unless the task is a habit not met yet.
+- **Streak data from older versions.** `history`, `skipHistory` and a task's `skipped`
+  are dropped on load and on import; nothing reads them any more.
 - **Missing `repeats`.** Anything stored before one-off tasks existed was a habit, so a
   missing or non-boolean `repeats` sanitizes to `true`.
 - **v1 → v2 migration.** The v1 format stored `done: boolean` and had no targets, days or
   history. `sanitizeState` recognises it and converts it (`target: 1`,
   `progress: done ? 1 : 0`, `weekdays: []`). The migration lives in the sanitizing itself,
   so it serves loading and importing an old backup alike.
-- **Bounded history.** 180 days are kept (`HISTORY_DAYS`); further back adds nothing and
-  bloats storage.
 - **Versioning.** If the shape of `TasksState` changes incompatibly, bump the key suffix
   and add the case to the sanitizer. Never change the meaning of a field while keeping the
   same key.
@@ -248,7 +240,6 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - Tasks not due today **do not appear in the main list**. They are grouped into a
   collapsible "Other days" section (a native `<details>`), where they show dimmed and without the
   progress control, but stay editable, reorderable and deletable.
-- A day the task was not due **does not break the streak**: it is skipped.
 
 ### 5.3 Manual order
 
@@ -296,40 +287,7 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - It accepts both the wrapper with `version` and a bare `TasksState`, and the v1 format
   too.
 
-### 5.6 Streaks
-
-- **Per task:** consecutive days meeting it, counting back from today. Days it was not due
-  are skipped without breaking it, and **an unfinished current day does not break it
-  either**: there is still time. It shows under the title, together with the days, and is
-  always on screen — a zero streak is information too.
-- **Tiers** (`streakTier`, tested): `none` at zero keeps the muted colour of the rest of
-  the line, `started` turns it white, `week` (7 days) warm and `month` (30) warmer. Four
-  steps, no gradient: the colour has to mean something at a glance.
-- A one-off task has no streak at all, and no line under the title either: which card it
-  is in already says what it is.
-- **Global:** consecutive days completing *every* task that was due. It shows in the
-  header.
-- **A known and accepted approximation:** for past days, the global streak is rebuilt from
-  the tasks that exist today, filtered by `createdAt`. A deleted task stops counting
-  backwards. Storing the set of scheduled tasks for each day would multiply the size of
-  the history for marginal benefit.
-
-### 5.7 Skipping a day
-
-Some days a habit just is not going to happen — sick, travelling — and losing a long streak
-over it is hostile. Skipping sets it aside **for today only**.
-
-- The skip button shows on a habit due today that is not met yet; a one-off has no streak
-  to protect and cannot be skipped. Once skipped, the same spot offers *Undo skipping*.
-- A skipped task is struck through in a quieter tone than a done one, its progress control
-  becomes a skip icon, and it cannot be advanced until it is unskipped. Its progress is
-  kept, not cleared, so unskipping loses nothing.
-- **Streaks:** a skipped day is treated like a day the task was not due — it neither counts
-  nor breaks the chain. For the global streak, a skipped task is left out of that day; a
-  day where everything due was skipped is passed over.
-- The section tally adds the skips: `2 of 5 done · 1 skipped`.
-
-### 5.8 Theme
+### 5.6 Theme
 
 - **Dark only.** There is no switch, no light palette and nothing persisted about the
   theme. [`index.css`](../src/index.css) declares a single palette on `:root`.
@@ -361,7 +319,7 @@ UI copy, comments, documentation and commit messages.
 | DOM event handler | `handle<Event>` | `handleSubmit`, `handleKeyDown` |
 | Domain action | imperative verb | `save`, `cancel`, `startEditing` |
 | Boolean | `is` / `has` prefix or a participle | `isEditing`, `done`, `dimmed` |
-| Module constant | `SCREAMING_SNAKE_CASE` | `STORAGE_KEY`, `HISTORY_DAYS` |
+| Module constant | `SCREAMING_SNAKE_CASE` | `STORAGE_KEY`, `DAY_START_HOUR` |
 
 Details worth the judgement:
 
@@ -438,10 +396,8 @@ that is not obvious on reading:
 |---|---|
 | `advanceProgress`, `normalizeTarget` | The counter cycle and the clamp are the heart of the model |
 | `createTask`, `patchTask` | Where a one-off loses its schedule and progress is clamped |
-| `currentDay`, `endOfDay` | The day starting at 5 a.m. instead of midnight |
-| `applyDailyReset` | Archives history and skips, and resets; hard to test by hand |
-| `canSkip`, `markSkipped` | Only a pending habit can be skipped, and it freezes progress |
-| `computeStreak`, `computeGlobalStreak` | Subtle rules: skipped days, the current day, the creation date |
+| `currentDay` | The day starting at 5 a.m. instead of midnight |
+| `applyDailyReset` | Resets and drops met one-offs; hard to test by hand |
 | `sanitizeState` | v1 → v2 migration and defence against corrupt data |
 | `parseBackup` | External input: the least trustworthy surface there is |
 | `toggleWeekday` | Empty and all seven days mean the same; the normalization is subtle |

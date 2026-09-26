@@ -5,16 +5,14 @@ import {
   STORAGE_KEY,
 } from '@/lib/config'
 import { getTodayKey, isDayKey } from '@/lib/date'
-import { clamp, pruneHistory, scheduleOf } from '@/lib/tasks'
+import { clamp, scheduleOf } from '@/lib/tasks'
 import { sortWeekdays } from '@/lib/weekdays'
-import type { Task, TaskHistory, TasksState, Weekday } from '@/types'
+import type { Task, TasksState, Weekday } from '@/types'
 
 function emptyState(): TasksState {
   return {
     tasks: [],
     lastResetDate: getTodayKey(),
-    history: {},
-    skipHistory: {},
   }
 }
 
@@ -65,26 +63,12 @@ function sanitizeTask(value: unknown): Task | null {
     target,
     progress,
     weekdays,
-    // Only a habit not met yet can be skipped, the same rule as `canSkip`.
-    skipped: value.skipped === true && repeats && progress < target,
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : Date.now(),
   }
 }
 
-function sanitizeHistory(value: unknown): TaskHistory {
-  if (!isRecord(value)) return {}
-
-  const entries = Object.entries(value).filter(
-    (entry): entry is [string, string[]] =>
-      isDayKey(entry[0]) &&
-      Array.isArray(entry[1]) &&
-      entry[1].every((id) => typeof id === 'string'),
-  )
-
-  return pruneHistory(Object.fromEntries(entries))
-}
-
-// Accepts both the v2 format and v1, which had no targets and no history.
+// Accepts both the v2 format and v1, which had no targets. Fields from older
+// versions, like the streak history, are dropped.
 export function sanitizeState(value: unknown): TasksState {
   if (!isRecord(value)) return emptyState()
 
@@ -95,13 +79,10 @@ export function sanitizeState(value: unknown): TasksState {
     tasks: source.tasks
       .map(sanitizeTask)
       .filter((task): task is Task => task !== null),
-    // A malformed date would be archived as a history key that is never pruned.
+    // A malformed date would never match today's key and force a reset.
     lastResetDate: isDayKey(source.lastResetDate)
       ? source.lastResetDate
       : getTodayKey(),
-    history: sanitizeHistory(source.history),
-    // Backups from before skipping existed have none.
-    skipHistory: sanitizeHistory(source.skipHistory),
   }
 }
 

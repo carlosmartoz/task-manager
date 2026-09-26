@@ -1,14 +1,7 @@
-import { HISTORY_DAYS, MAX_TARGET, MIN_TARGET } from '@/lib/config'
-import { addDays, currentDay, getTodayKey } from '@/lib/date'
+import { MAX_TARGET, MIN_TARGET } from '@/lib/config'
+import { currentDay, getTodayKey } from '@/lib/date'
 import { isScheduledOn, sortWeekdays } from '@/lib/weekdays'
-import type {
-  NewTask,
-  Task,
-  TaskHistory,
-  TaskPatch,
-  TasksState,
-  Weekday,
-} from '@/types'
+import type { NewTask, Task, TaskPatch, TasksState, Weekday } from '@/types'
 
 // `done` derives from `progress`; as a field it would allow the impossible
 // state "done with 3 of 8".
@@ -18,15 +11,6 @@ export function isTaskDone(task: Task): boolean {
 
 export function countDone(tasks: Task[]): number {
   return tasks.filter(isTaskDone).length
-}
-
-export function countSkipped(tasks: Task[]): number {
-  return tasks.filter((task) => task.skipped).length
-}
-
-// Only a habit has a streak to protect, and a day already met needs no skip.
-export function canSkip(task: Task): boolean {
-  return task.repeats && !isTaskDone(task)
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -64,7 +48,6 @@ export function createTask(
     repeats,
     ...scheduleOf(repeats, target, weekdays),
     progress: 0,
-    skipped: false,
     createdAt: now,
   }
 }
@@ -81,7 +64,7 @@ export function patchTask(task: Task, patch: TaskPatch): Task {
     patch.weekdays ?? task.weekdays,
   )
 
-  const patched = {
+  return {
     ...task,
     title,
     repeats,
@@ -90,21 +73,10 @@ export function patchTask(task: Task, patch: TaskPatch): Task {
     // Lowering the target must not leave progress above it.
     progress: clamp(task.progress, 0, target),
   }
-
-  // Becoming a one-off, or met by a lowered target, leaves nothing to skip.
-  return { ...patched, skipped: task.skipped && canSkip(patched) }
-}
-
-// Skipping a task that cannot be skipped leaves it as it was.
-export function markSkipped(task: Task, skipped: boolean): Task {
-  if (skipped && !canSkip(task)) return task
-  return { ...task, skipped }
 }
 
 // One gesture for the whole cycle: add one and, once the target is met, reset.
 export function advanceProgress(task: Task): number {
-  // A skipped task is set aside for the day; it has to be unskipped first.
-  if (task.skipped) return task.progress
   return isTaskDone(task) ? 0 : task.progress + 1
 }
 
@@ -139,20 +111,8 @@ export function groupForToday(tasks: Task[], weekday: Weekday) {
   }
 }
 
-// Drops the days that fall outside the history window.
-export function pruneHistory(
-  history: TaskHistory,
-  today: Date = currentDay(),
-): TaskHistory {
-  const oldest = getTodayKey(addDays(today, -HISTORY_DAYS))
-
-  return Object.fromEntries(
-    Object.entries(history).filter(([day]) => day >= oldest),
-  )
-}
-
-// On a day change what was met or skipped is archived and progress resets. If
-// the day has not changed it returns the same object, to avoid extra renders.
+// On a day change progress resets. If the day has not changed it returns the
+// same object, to avoid extra renders.
 export function applyDailyReset(
   state: TasksState,
   today: Date = currentDay(),
@@ -160,26 +120,11 @@ export function applyDailyReset(
   const todayKey = getTodayKey(today)
   if (state.lastResetDate === todayKey) return state
 
-  const completedIds = state.tasks
-    .filter((task) => task.repeats && isTaskDone(task))
-    .map((task) => task.id)
-  const skippedIds = state.tasks
-    .filter((task) => task.skipped)
-    .map((task) => task.id)
-
   return {
     // A one-off that was met is finished: it does not come back tomorrow.
     tasks: state.tasks
       .filter((task) => task.repeats || !isTaskDone(task))
-      .map((task) => ({ ...task, progress: 0, skipped: false })),
+      .map((task) => ({ ...task, progress: 0 })),
     lastResetDate: todayKey,
-    history: pruneHistory(
-      { ...state.history, [state.lastResetDate]: completedIds },
-      today,
-    ),
-    skipHistory: pruneHistory(
-      { ...state.skipHistory, [state.lastResetDate]: skippedIds },
-      today,
-    ),
   }
 }

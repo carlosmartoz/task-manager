@@ -106,21 +106,6 @@ describe('useTasks', () => {
     expect(result.current.state.tasks[0]).toMatchObject({ target: 1, progress: 1 })
   })
 
-  it('skips a habit for the day, freezing its progress, and unskips it', () => {
-    const { result } = setup()
-    act(() => result.current.addTask({ title: 'Gym', target: 3 }))
-    const id = result.current.state.tasks[0].id
-
-    act(() => result.current.advanceTask(id))
-    act(() => result.current.skipTask(id))
-    act(() => result.current.advanceTask(id))
-    expect(result.current.state.tasks[0]).toMatchObject({ skipped: true, progress: 1 })
-
-    act(() => result.current.unskipTask(id))
-    act(() => result.current.advanceTask(id))
-    expect(result.current.state.tasks[0]).toMatchObject({ skipped: false, progress: 2 })
-  })
-
   it('reorders by swapping two tasks by id', () => {
     const { result } = setup(['One', 'Two', 'Three'])
     const [, second, third] = result.current.state.tasks

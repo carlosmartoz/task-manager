@@ -37,10 +37,3 @@ export function addDays(date: Date, amount: number): Date {
   return result
 }
 
-// Last instant of the day, to tell whether a task already existed then. The
-// day runs until `DAY_START_HOUR` of the next calendar date.
-export function endOfDay(date: Date): number {
-  const result = addDays(date, 1)
-  result.setHours(DAY_START_HOUR, 0, 0, -1)
-  return result.getTime()
-}

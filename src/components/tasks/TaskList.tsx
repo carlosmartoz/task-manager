@@ -5,15 +5,11 @@ import type { Task } from '@/types'
 
 type TaskListProps = {
   tasks: Task[]
-  // Streak by task id; the ones missing render without a streak.
-  streaks: Record<string, number>
   dimmed?: boolean
   // The task the form is editing right now, if it is in this list.
   editingId?: string | null
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
-  onSkip: (id: string) => void
-  onUnskip: (id: string) => void
   onStartEdit: (id: string) => void
   onSwap: (id: string, otherId: string) => void
   onRemove: (id: string) => void
@@ -21,13 +17,10 @@ type TaskListProps = {
 
 export function TaskList({
   tasks,
-  streaks,
   dimmed,
   editingId,
   onAdvance,
   onDecrement,
-  onSkip,
-  onUnskip,
   onStartEdit,
   onSwap,
   onRemove,
@@ -57,15 +50,12 @@ export function TaskList({
           <TaskItem
             key={task.id}
             task={task}
-            streak={streaks[task.id] ?? 0}
             dimmed={dimmed}
             isEditing={editingId === task.id}
             isDragging={draggingId === task.id}
             isDragOver={overId === task.id && draggingId !== task.id}
             onAdvance={onAdvance}
             onDecrement={onDecrement}
-            onSkip={onSkip}
-            onUnskip={onUnskip}
             onStartEdit={onStartEdit}
             onMoveUp={previous ? () => onSwap(task.id, previous.id) : undefined}
             onMoveDown={next ? () => onSwap(task.id, next.id) : undefined}

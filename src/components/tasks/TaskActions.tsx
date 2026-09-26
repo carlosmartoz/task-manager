@@ -1,16 +1,14 @@
 import type { KeyboardEvent } from 'react'
 import {
-  IconArrowBackUp,
   IconGripVertical,
   IconMinus,
   IconPencil,
-  IconPlayerSkipForward,
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
-import { canSkip, isTaskDone } from '@/lib/tasks'
+import { isTaskDone } from '@/lib/tasks'
 import type { Task } from '@/types'
 
 type TaskActionsProps = {
@@ -19,8 +17,6 @@ type TaskActionsProps = {
   dimmed: boolean
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
-  onSkip: (id: string) => void
-  onUnskip: (id: string) => void
   onStartEdit: (id: string) => void
   onRemove: (id: string) => void
   // Absent when the task is already first in the visible list.
@@ -35,14 +31,12 @@ export function TaskActions({
   dimmed,
   onAdvance,
   onDecrement,
-  onSkip,
-  onUnskip,
   onStartEdit,
   onRemove,
   onMoveUp,
   onMoveDown,
 }: TaskActionsProps) {
-  const hasCounter = !dimmed && !task.skipped && task.target > 1
+  const hasCounter = !dimmed && task.target > 1
 
   // Reordering without a mouse: the grip moves the task with the arrow keys.
   function handleGripKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -79,26 +73,6 @@ export function TaskActions({
             <IconPlus />
           </Button>
         </>
-      )}
-      {!dimmed && task.skipped && (
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={() => onUnskip(task.id)}
-          aria-label={`Undo skipping "${task.title}"`}
-        >
-          <IconArrowBackUp />
-        </Button>
-      )}
-      {!dimmed && !task.skipped && canSkip(task) && (
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={() => onSkip(task.id)}
-          aria-label={`Skip "${task.title}" today`}
-        >
-          <IconPlayerSkipForward />
-        </Button>
       )}
       <Button
         size="icon-sm"

@@ -1,8 +1,7 @@
 # Task Manager
 
 A **daily habits** app: tasks carry over from one day to the next, and when the day
-changes (at **5 a.m. local time**, not midnight) what was met or skipped is archived and
-progress returns to zero. A task can demand several
+changes (at **5 a.m. local time**, not midnight) progress returns to zero. A task can demand several
 repetitions (`target`) and be limited to certain weekdays. Local, no backend.
 
 Full specs: [docs/SPECS.md](docs/SPECS.md). This file is the working summary.
@@ -33,9 +32,9 @@ src/
     ui/       shadcn generated; do not reformat
     tasks/    TaskForm, TaskSection, TaskList, TaskItem, TaskActions, TaskProgress,
               WeekdayPicker, EmptyState
-    shell/    DataActions, GlobalStreak, UndoToast
+    shell/    DataActions, UndoToast
   hooks/      useTasks (state), useTaskForm, useBackup
-  lib/        config, date, weekdays, tasks, streaks, storage, download, utils
+  lib/        config, date, weekdays, tasks, storage, download, utils
   types/      one type per file, re-exported from index.ts
 tests/        mirrors the src/ tree
 ```
@@ -45,7 +44,7 @@ Types are always imported from the barrel: `import type { Task } from '@/types'`
 ## Model
 
 ```ts
-type Task = { id, title, repeats, target, progress, weekdays, skipped, createdAt }
+type Task = { id, title, repeats, target, progress, weekdays, createdAt }
 const isTaskDone = (task) => task.progress >= task.target
 ```
 
@@ -53,19 +52,17 @@ const isTaskDone = (task) => task.progress >= task.target
 degenerate case of the counter. Do not introduce two kinds of task.
 
 **`repeats`** says how long the task lives, not how it works: `true` is the daily habit
-(days, target, streaks); `false` is a one-off, always due, `target: 1`, no streak, and
-dropped on the day change once it is met. `scheduleOf` strips the days and the target of a
+(days, target); `false` is a one-off, always due, `target: 1`, and dropped on the day
+change once it is met. `scheduleOf` strips the days and the target of a
 one-off on creation and on edit.
-
-**`skipped`** sets a habit aside for today: the day neither counts towards its streak nor
-breaks it, and it is archived in `skipHistory`. Only a habit not met yet can be skipped
-(`canSkip`); a skipped task cannot be advanced.
 
 **The day** is `currentDay()`, which starts at `DAY_START_HOUR` (5 a.m.). Any "today"
 goes through it, never a bare `new Date()`.
 
 ## Hard rules
 
+- **No streaks, chains or history of past days.** The app shows today and nothing else:
+  it must not push anyone to keep a run going. Removed on purpose; do not bring it back.
 - **No new dependencies** without justifying it first. No router, state manager, date
   library, drag & drop library or backend: the project is deliberately minimal. Reordering
   is drag & drop written by hand on the native HTML5 API, in `TaskList`.

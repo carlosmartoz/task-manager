@@ -1,25 +1,14 @@
 import type { DragEvent } from 'react'
-import { IconFlame } from '@tabler/icons-react'
 
 import { TaskActions } from '@/components/tasks/TaskActions'
 import { TaskProgress } from '@/components/tasks/TaskProgress'
-import { streakTier } from '@/lib/streaks'
 import { isTaskDone } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { formatWeekdays } from '@/lib/weekdays'
-import type { StreakTier, Task } from '@/types'
-
-// A longer streak earns a warmer colour; at zero it stays as quiet as the rest.
-const STREAK_TONE: Record<StreakTier, string> = {
-  none: '',
-  started: 'text-foreground',
-  week: 'text-streak',
-  month: 'text-streak-strong',
-}
+import type { Task } from '@/types'
 
 type TaskItemProps = {
   task: Task
-  streak: number
   // The task is not due today: shown dimmed and without the progress control.
   dimmed?: boolean
   // The task the form is editing right now.
@@ -29,8 +18,6 @@ type TaskItemProps = {
   isDragOver?: boolean
   onAdvance: (id: string) => void
   onDecrement: (id: string) => void
-  onSkip: (id: string) => void
-  onUnskip: (id: string) => void
   onStartEdit: (id: string) => void
   // Absent when the task is already first in the visible list.
   onMoveUp?: () => void
@@ -45,15 +32,12 @@ type TaskItemProps = {
 
 export function TaskItem({
   task,
-  streak,
   dimmed = false,
   isEditing = false,
   isDragging = false,
   isDragOver = false,
   onAdvance,
   onDecrement,
-  onSkip,
-  onUnskip,
   onStartEdit,
   onMoveUp,
   onMoveDown,
@@ -64,8 +48,8 @@ export function TaskItem({
   onDrop,
 }: TaskItemProps) {
   const done = isTaskDone(task)
-  // Not due today or skipped: clicking the title has nothing to advance.
-  const canAdvance = !dimmed && !task.skipped
+  // Not due today: clicking the title has nothing to advance.
+  const canAdvance = !dimmed
 
   function handleDrop(event: DragEvent<HTMLLIElement>) {
     event.preventDefault()
@@ -105,28 +89,14 @@ export function TaskItem({
             'truncate text-sm font-medium text-foreground',
             canAdvance && 'cursor-pointer',
             done && 'text-muted-foreground line-through',
-            task.skipped && 'text-subtle-foreground line-through',
           )}
         >
           {task.title}
         </span>
 
         {task.repeats && (
-          <p className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-            <span
-              className={cn(
-                'flex shrink-0 items-center gap-1 font-semibold tabular-nums',
-                STREAK_TONE[streakTier(streak)],
-              )}
-              title={`${streak}-day streak`}
-            >
-              <IconFlame className="size-4" />
-              {streak}
-            </span>
-            <span className="min-w-0 truncate">
-              {formatWeekdays(task.weekdays)}
-            </span>
-            {task.skipped && <span className="shrink-0">· Skipped today</span>}
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {formatWeekdays(task.weekdays)}
           </p>
         )}
       </div>
@@ -136,8 +106,6 @@ export function TaskItem({
         dimmed={dimmed}
         onAdvance={onAdvance}
         onDecrement={onDecrement}
-        onSkip={onSkip}
-        onUnskip={onUnskip}
         onStartEdit={onStartEdit}
         onRemove={onRemove}
         onMoveUp={onMoveUp}
