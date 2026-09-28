@@ -472,7 +472,9 @@ Review checklist before calling a change closed:
 - Branches: `feat/…`, `fix/…`, `refactor/…`, `docs/…`.
 - Commits follow Conventional Commits, like the current history:
   `refactor: replace lucide icons with tabler icons`. One commit, one coherent change.
-- `dist/`, `node_modules/` and the lockfiles are ignored by project decision.
+- `dist/` and `node_modules/` are ignored. `package-lock.json` is tracked: it makes
+  installs reproducible and is what Dependabot reads. Other package managers' lockfiles
+  are ignored, since the project uses npm.
 
 ---
 

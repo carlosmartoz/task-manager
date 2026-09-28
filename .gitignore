@@ -12,8 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Lockfiles
-package-lock.json
+# Other package managers' lockfiles; package-lock.json is tracked
 pnpm-lock.yaml
 yarn.lock
 bun.lock
