@@ -79,7 +79,7 @@ describe('useTasks', () => {
     expect(result.current.state.tasks).toEqual([])
   })
 
-  it('advances progress and resets to zero past the target', () => {
+  it('advances a counter up to its target and no further', () => {
     const { result } = setup()
     act(() => result.current.addTask({ title: 'Water', target: 2 }))
     const id = result.current.state.tasks[0].id
@@ -91,7 +91,10 @@ describe('useTasks', () => {
     expect(result.current.state.tasks[0].progress).toBe(2)
 
     act(() => result.current.advanceTask(id))
-    expect(result.current.state.tasks[0].progress).toBe(0)
+    expect(result.current.state.tasks[0].progress).toBe(2)
+
+    act(() => result.current.decrementTask(id))
+    expect(result.current.state.tasks[0].progress).toBe(1)
   })
 
   it('never leaves progress above a lowered target', () => {

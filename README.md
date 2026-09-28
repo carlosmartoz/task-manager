@@ -10,8 +10,8 @@ It runs entirely in the browser. No accounts, no server, no network. The data li
 ## What it does
 
 - **Repetition targets.** A task can ask for several advances: *drink 8 glasses of water*.
-  Each click adds one; once the target is met, the next one resets it. A plain task is
-  just the target-1 case, a checkbox.
+  Each click adds one until the target is met; `−` takes one back. A plain task is just
+  the target-1 case, a checkbox.
 - **Weekdays.** *Gym on Monday, Wednesday and Friday*. Whatever is not due today is set
   aside in a collapsible section.
 - **Manual order, undo and backup.** The list keeps your order, deleting leaves 6 seconds

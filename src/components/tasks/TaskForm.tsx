@@ -63,7 +63,7 @@ export function TaskForm({ editing, onAdd, onSave, onCancel }: TaskFormProps) {
 
       <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
         <Checkbox checked={form.repeats} onCheckedChange={form.setRepeats} />
-        Repeats every day
+        Repeats
       </label>
 
       <div

@@ -60,10 +60,10 @@ describe('countDone', () => {
 })
 
 describe('advanceProgress', () => {
-  it('adds one repetition up to the target, then resets to zero', () => {
+  it('adds one repetition up to the target, then stays there', () => {
     expect(advanceProgress(makeTask({ target: 3, progress: 0 }))).toBe(1)
     expect(advanceProgress(makeTask({ target: 3, progress: 2 }))).toBe(3)
-    expect(advanceProgress(makeTask({ target: 3, progress: 3 }))).toBe(0)
+    expect(advanceProgress(makeTask({ target: 3, progress: 3 }))).toBe(3)
   })
 
   it('behaves like a checkbox when the target is 1', () => {

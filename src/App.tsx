@@ -79,7 +79,7 @@ function App() {
             ) : (
               <div className="grid min-w-0 gap-5 xl:grid-cols-2">
                 <TaskSection
-                  title="Repetitive tasks"
+                  title="Habits"
                   summary={`${countDone(habits)} of ${habits.length} done`}
                 >
                   {habits.length === 0 ? (
@@ -93,7 +93,7 @@ function App() {
 
                 {oneOffs.length > 0 && (
                   <TaskSection
-                    title="Unique tasks"
+                    title="One-off tasks"
                     summary={`${countDone(oneOffs)} of ${oneOffs.length} done`}
                   >
                     <TaskList tasks={oneOffs} {...listProps} />

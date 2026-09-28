@@ -225,11 +225,13 @@ A task can demand several repetitions a day: "drink 8 glasses of water".
 
 - It is set **when creating the task**, in the *Repetitions per day* field, and can be
   changed when editing it. The title is never parsed: it is an explicit field.
-- **One gesture for the whole cycle.** `advanceProgress` adds one repetition and, once the
-  target is met, the next advance resets to zero. With `target: 1` that is exactly ticking
-  and unticking a checkbox, so the action is the same for both cases.
-- A `−` button lets someone correct one advance too many; it only shows with `target > 1`
-  and `progress > 0`. Clicking seven more times to undo one would be hostile.
+- **One action for both cases.** `advanceProgress` adds one repetition. With `target: 1`
+  the next advance unticks it, exactly like a checkbox. A met counter (`target > 1`)
+  **stays met**: it used to wrap to zero, and one stray click on the title threw away a
+  whole day of repetitions that took eight clicks to get back. `canAdvance` says which
+  case applies, and the title and the `+` button follow it.
+- A `−` button lets someone correct one advance too many, and is the only way down from a
+  met counter; it only shows with `target > 1`.
 - **UI:** with `target: 1`, a checkbox. With `target > 1`, a `3/8` pill that fills
   proportionally. The "8 little dots" idea was dropped because it does not scale to
   `target: 30`.
@@ -402,7 +404,7 @@ that is not obvious on reading:
 
 | Covered | Why |
 |---|---|
-| `advanceProgress`, `normalizeTarget` | The counter cycle and the clamp are the heart of the model |
+| `advanceProgress`, `normalizeTarget` | The counter and the clamp are the heart of the model |
 | `createTask`, `patchTask` | Where a one-off loses its schedule and progress is clamped |
 | `currentDay` | The day starting at 5 a.m. instead of midnight |
 | `applyDailyReset` | Resets and drops met one-offs; hard to test by hand |

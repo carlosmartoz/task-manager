@@ -10,7 +10,7 @@ import {
 } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
-import { isTaskDone } from '@/lib/tasks'
+import { canAdvance } from '@/lib/tasks'
 import type { Task } from '@/types'
 
 type TaskActionsProps = {
@@ -71,7 +71,7 @@ export function TaskActions({
             size="icon-sm"
             variant="ghost"
             onClick={() => onAdvance(task.id)}
-            disabled={isTaskDone(task)}
+            disabled={!canAdvance(task)}
             aria-label={`${count}. Add one`}
           >
             <IconPlus />

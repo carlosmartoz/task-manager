@@ -82,8 +82,14 @@ export function patchTask(task: Task, patch: TaskPatch): Task {
   }
 }
 
-// One gesture for the whole cycle: add one and, once the target is met, reset.
+// A checkbox unticks on the next advance, but a met counter stays met: a stray
+// click must not throw away a day of repetitions. `−` brings it down.
+export function canAdvance(task: Task): boolean {
+  return !isTaskDone(task) || task.target === MIN_TARGET
+}
+
 export function advanceProgress(task: Task): number {
+  if (!canAdvance(task)) return task.progress
   return isTaskDone(task) ? 0 : task.progress + 1
 }
 

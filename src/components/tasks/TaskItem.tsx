@@ -2,7 +2,7 @@ import type { DragEvent } from 'react'
 
 import { TaskActions } from '@/components/tasks/TaskActions'
 import { TaskProgress } from '@/components/tasks/TaskProgress'
-import { isTaskDone } from '@/lib/tasks'
+import { canAdvance, isTaskDone } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { formatWeekdays } from '@/lib/weekdays'
 import type { Task } from '@/types'
@@ -48,8 +48,8 @@ export function TaskItem({
   onDrop,
 }: TaskItemProps) {
   const done = isTaskDone(task)
-  // Not due today: clicking the title has nothing to advance.
-  const canAdvance = !dimmed
+  // Not due today, or a met counter: clicking the title has nothing to advance.
+  const isClickable = !dimmed && canAdvance(task)
 
   function handleDrop(event: DragEvent<HTMLLIElement>) {
     event.preventDefault()
@@ -82,12 +82,12 @@ export function TaskItem({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <span
-          onClick={() => canAdvance && onAdvance(task.id)}
+          onClick={() => isClickable && onAdvance(task.id)}
           // The full title on hover, since a long one is cut with an ellipsis.
           title={task.title}
           className={cn(
             'truncate text-sm font-medium text-foreground',
-            canAdvance && 'cursor-pointer',
+            isClickable && 'cursor-pointer',
             done && 'text-muted-foreground line-through',
           )}
         >
