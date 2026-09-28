@@ -1,7 +1,14 @@
 import { MAX_TARGET, MIN_TARGET } from '@/lib/config'
 import { currentDay, getTodayKey } from '@/lib/date'
 import { isScheduledOn, sortWeekdays } from '@/lib/weekdays'
-import type { NewTask, Task, TaskPatch, TasksState, Weekday } from '@/types'
+import type {
+  NewTask,
+  PendingUndo,
+  Task,
+  TaskPatch,
+  TasksState,
+  Weekday,
+} from '@/types'
 
 // `done` derives from `progress`; as a field it would allow the impossible
 // state "done with 3 of 8".
@@ -111,6 +118,14 @@ export function groupForToday(tasks: Task[], weekday: Weekday) {
   }
 }
 
+// What a new day does to the list. A one-off that was met is finished: it does
+// not come back tomorrow.
+export function startNewDay(tasks: Task[]): Task[] {
+  return tasks
+    .filter((task) => task.repeats || !isTaskDone(task))
+    .map((task) => ({ ...task, progress: 0 }))
+}
+
 // On a day change progress resets. If the day has not changed it returns the
 // same object, to avoid extra renders.
 export function applyDailyReset(
@@ -120,11 +135,21 @@ export function applyDailyReset(
   const todayKey = getTodayKey(today)
   if (state.lastResetDate === todayKey) return state
 
-  return {
-    // A one-off that was met is finished: it does not come back tomorrow.
-    tasks: state.tasks
-      .filter((task) => task.repeats || !isTaskDone(task))
-      .map((task) => ({ ...task, progress: 0 })),
-    lastResetDate: todayKey,
-  }
+  return { tasks: startNewDay(state.tasks), lastResetDate: todayKey }
+}
+
+// Puts a deleted task back where it was. If the day changed in between, it
+// comes back as the new day would have left it.
+export function restoreTask(
+  state: TasksState,
+  { task, index, day }: Extract<PendingUndo, { kind: 'remove' }>,
+): TasksState {
+  if (state.tasks.some((candidate) => candidate.id === task.id)) return state
+
+  const [restored] = day === state.lastResetDate ? [task] : startNewDay([task])
+  if (!restored) return state
+
+  const tasks = [...state.tasks]
+  tasks.splice(Math.min(index, tasks.length), 0, restored)
+  return { ...state, tasks }
 }

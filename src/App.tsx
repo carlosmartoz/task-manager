@@ -22,7 +22,7 @@ function App() {
     decrementTask,
     swapTasks,
     removeTask,
-    undoRemove,
+    undo,
     dismissUndo,
     replaceState,
   } = useTasks()
@@ -116,8 +116,8 @@ function App() {
 
         {pendingUndo && (
           <UndoToast
-            title={pendingUndo.task.title}
-            onUndo={undoRemove}
+            pendingUndo={pendingUndo}
+            onUndo={undo}
             onDismiss={dismissUndo}
           />
         )}

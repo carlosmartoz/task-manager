@@ -11,6 +11,7 @@ import {
   moveItem,
   normalizeTarget,
   patchTask,
+  restoreTask,
   scheduleOf,
 } from '@/lib/tasks'
 import type { Task, TasksState } from '@/types'
@@ -216,5 +217,45 @@ describe('applyDailyReset', () => {
     const next = applyDailyReset(state, MONDAY)
 
     expect(next.tasks.map((task) => task.id)).toEqual(['one-off-pending'])
+  })
+})
+
+describe('restoreTask', () => {
+  const removed = (task: Task, day = '2024-01-08') =>
+    ({ kind: 'remove', task, index: 1, day }) as const
+
+  it('puts the task back in its original position, as it was', () => {
+    const state = makeState({
+      tasks: [makeTask({ id: 'a' }), makeTask({ id: 'c' })],
+    })
+    const task = makeTask({ id: 'b', target: 3, progress: 2 })
+
+    const next = restoreTask(state, removed(task))
+
+    expect(next.tasks.map((candidate) => candidate.id)).toEqual(['a', 'b', 'c'])
+    expect(next.tasks[1].progress).toBe(2)
+  })
+
+  it('does not bring back the progress of the day before', () => {
+    const state = makeState({ tasks: [makeTask({ id: 'a' })] })
+    const task = makeTask({ id: 'b', target: 3, progress: 3 })
+
+    const next = restoreTask(state, removed(task, '2024-01-07'))
+
+    expect(next.tasks[1]).toMatchObject({ id: 'b', progress: 0 })
+  })
+
+  it('leaves out a met one-off the day change would have dropped', () => {
+    const state = makeState({ tasks: [makeTask({ id: 'a' })] })
+    const task = makeTask({ id: 'b', repeats: false, progress: 1 })
+
+    expect(restoreTask(state, removed(task, '2024-01-07'))).toBe(state)
+  })
+
+  it('does nothing when the task is already there', () => {
+    const task = makeTask({ id: 'a' })
+    const state = makeState({ tasks: [task] })
+
+    expect(restoreTask(state, removed(task))).toBe(state)
   })
 })

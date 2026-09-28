@@ -125,14 +125,35 @@ describe('useTasks', () => {
 
     act(() => result.current.removeTask(middle.id))
     expect(result.current.state.tasks.map((task) => task.title)).toEqual(['One', 'Three'])
-    expect(result.current.pendingUndo?.task.title).toBe('Two')
+    expect(result.current.pendingUndo).toMatchObject({
+      kind: 'remove',
+      task: { title: 'Two' },
+    })
 
-    act(() => result.current.undoRemove())
+    act(() => result.current.undo())
     expect(result.current.state.tasks.map((task) => task.title)).toEqual([
       'One',
       'Two',
       'Three',
     ])
+    expect(result.current.pendingUndo).toBeNull()
+  })
+
+  it('undoes an import, bringing back the state it replaced', () => {
+    const { result } = setup(['Before'])
+    const before = result.current.state
+
+    act(() =>
+      result.current.replaceState({
+        lastResetDate: before.lastResetDate,
+        tasks: [],
+      }),
+    )
+    expect(result.current.state.tasks).toEqual([])
+    expect(result.current.pendingUndo?.kind).toBe('import')
+
+    act(() => result.current.undo())
+    expect(result.current.state).toEqual(before)
     expect(result.current.pendingUndo).toBeNull()
   })
 

@@ -9,6 +9,7 @@ import {
   decrementProgress,
   moveItem,
   patchTask,
+  restoreTask,
 } from '@/lib/tasks'
 import type { NewTask, PendingUndo, Task, TaskPatch, TasksState } from '@/types'
 
@@ -105,6 +106,16 @@ export function useTasks() {
     })
   }, [])
 
+  // One notice at a time: offering a new undo drops the previous one.
+  const offerUndo = useCallback((undo: PendingUndo) => {
+    window.clearTimeout(undoTimer.current)
+    setPendingUndo(undo)
+    undoTimer.current = window.setTimeout(
+      () => setPendingUndo(null),
+      UNDO_TIMEOUT,
+    )
+  }, [])
+
   const removeTask = useCallback(
     (id: string) => {
       const index = state.tasks.findIndex((task) => task.id === id)
@@ -116,38 +127,31 @@ export function useTasks() {
         tasks: prev.tasks.filter((candidate) => candidate.id !== id),
       }))
 
-      window.clearTimeout(undoTimer.current)
-      setPendingUndo({ task, index })
-      undoTimer.current = window.setTimeout(
-        () => setPendingUndo(null),
-        UNDO_TIMEOUT,
-      )
+      offerUndo({ kind: 'remove', task, index, day: state.lastResetDate })
     },
-    [state.tasks],
+    [state, offerUndo],
   )
 
-  const undoRemove = useCallback(() => {
-    if (!pendingUndo) return
-
-    const { task, index } = pendingUndo
-    setState((prev) => {
-      if (prev.tasks.some((candidate) => candidate.id === task.id)) return prev
-
-      const tasks = [...prev.tasks]
-      tasks.splice(Math.min(index, tasks.length), 0, task)
-      return { ...prev, tasks }
-    })
-
-    dismissUndo()
-  }, [pendingUndo, dismissUndo])
-
+  // An import replaces everything, so it can be undone like a deletion.
   const replaceState = useCallback(
     (next: TasksState) => {
       setState(applyDailyReset(next))
-      dismissUndo()
+      offerUndo({ kind: 'import', previous: state })
     },
-    [dismissUndo],
+    [state, offerUndo],
   )
+
+  const undo = useCallback(() => {
+    if (!pendingUndo) return
+
+    if (pendingUndo.kind === 'import') {
+      setState(applyDailyReset(pendingUndo.previous))
+    } else {
+      setState((prev) => restoreTask(prev, pendingUndo))
+    }
+
+    dismissUndo()
+  }, [pendingUndo, dismissUndo])
 
   return {
     state,
@@ -158,7 +162,7 @@ export function useTasks() {
     decrementTask,
     swapTasks,
     removeTask,
-    undoRemove,
+    undo,
     dismissUndo,
     replaceState,
   }

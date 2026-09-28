@@ -36,7 +36,7 @@ app is there to help, not to make anyone feel they owe it a run of perfect days.
 | Automatic daily reset | Notifications, reminders |
 |  | Streaks, or any record of past days |
 |  | Statistics or progress charts |
-| Undo deletion | Attachments, long notes |
+| Undo deletion and import | Attachments, long notes |
 | JSON export / import | Collaboration |
 |  | Light theme or a theme switch |
 |  | Installable or offline (PWA) |
@@ -271,7 +271,7 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - **A new task does not repeat by default.** The repeat options stay on screen while the
   checkbox is off, only dimmed and disabled, so the form never changes height.
 
-### 5.4 Undo deletion
+### 5.4 Undo deletion and import
 
 - Deleting asks for no confirmation, but for **6 seconds** a notice appears with *Undo*,
   which puts the task back **in its original position**, not at the end.
@@ -279,6 +279,9 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
   and it protects the rare one (deleting by mistake).
 - The timer is cancelled when another task is deleted, on undo, on dismissing the notice
   and on unmount.
+- If the day changed between deleting and undoing (a deletion at 4:59), the task comes
+  back as the new day would have left it: progress at zero, and a met one-off not at all.
+  That is `restoreTask`, pure, in `lib/tasks.ts`.
 
 ### 5.5 Export and import
 
@@ -287,6 +290,8 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 - Exports `{ version, exportedAt, data }` to `tasks-YYYY-MM-DD.json`.
 - Importing **replaces** the whole state and goes through the same sanitizing as loading,
   so a tampered file cannot inject invalid data. Errors show as text, never in an `alert`.
+- The replacement can be undone for 6 seconds with the same notice as a deletion
+  (`PendingUndo` of kind `import`): picking the wrong file must not cost the list.
 - It accepts both the wrapper with `version` and a bare `TasksState`, and the v1 format
   too.
 
@@ -401,10 +406,11 @@ that is not obvious on reading:
 | `createTask`, `patchTask` | Where a one-off loses its schedule and progress is clamped |
 | `currentDay` | The day starting at 5 a.m. instead of midnight |
 | `applyDailyReset` | Resets and drops met one-offs; hard to test by hand |
+| `restoreTask` | Undoing a deletion across a day change |
 | `sanitizeState` | v1 → v2 migration and defence against corrupt data |
 | `parseBackup` | External input: the least trustworthy surface there is |
 | `toggleWeekday` | Empty and all seven days mean the same; the normalization is subtle |
-| `useTasks` | That the invariants hold when actions are chained |
+| `useTasks` | That the invariants hold when actions are chained, undo, and the sync between tabs |
 
 Presentation components are not tested: their value is in how they look, and a render test
 would only repeat the JSX.
