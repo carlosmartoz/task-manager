@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { DAY_CHECK_INTERVAL, UNDO_TIMEOUT } from '@/lib/config'
-import { loadState, saveState } from '@/lib/storage'
+import { DAY_CHECK_INTERVAL, STORAGE_KEY, UNDO_TIMEOUT } from '@/lib/config'
+import { loadState, parseStoredState, saveState } from '@/lib/storage'
 import {
   advanceProgress,
   applyDailyReset,
@@ -36,6 +36,17 @@ export function useTasks() {
       window.removeEventListener('focus', check)
       document.removeEventListener('visibilitychange', check)
     }
+  }, [])
+
+  // Another tab saved: adopt its state, or our next save would overwrite it.
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== STORAGE_KEY || event.newValue === null) return
+      setState(applyDailyReset(parseStoredState(event.newValue)))
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
   useEffect(() => () => window.clearTimeout(undoTimer.current), [])

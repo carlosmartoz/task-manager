@@ -136,6 +136,25 @@ describe('useTasks', () => {
     expect(result.current.pendingUndo).toBeNull()
   })
 
+  it('adopts what another tab saved instead of overwriting it', () => {
+    const { result } = setup(['Mine'])
+    const other = {
+      lastResetDate: result.current.state.lastResetDate,
+      tasks: [{ id: 'x', title: 'From the other tab', target: 1, progress: 0 }],
+    }
+    const newValue = JSON.stringify(other)
+
+    act(() => {
+      localStorage.setItem(STORAGE_KEY, newValue)
+      window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue }))
+    })
+
+    expect(result.current.state.tasks.map((task) => task.title)).toEqual([
+      'From the other tab',
+    ])
+    expect(localStorage.getItem(STORAGE_KEY)).toContain('From the other tab')
+  })
+
   it('saves the state to localStorage', () => {
     const { result } = setup(['Persisted'])
 

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { getTodayKey } from '@/lib/date'
-import { parseBackup, sanitizeState, serializeBackup } from '@/lib/storage'
+import {
+  parseBackup,
+  parseStoredState,
+  sanitizeState,
+  serializeBackup,
+} from '@/lib/storage'
 import type { TasksState } from '@/types'
 
 const TODAY = getTodayKey()
@@ -109,6 +114,28 @@ describe('sanitizeState', () => {
     expect(state).toEqual({
       tasks: [expect.not.objectContaining({ skipped: expect.anything() })],
       lastResetDate: TODAY,
+    })
+  })
+})
+
+describe('parseStoredState', () => {
+  it('returns an empty state for a missing or corrupt value', () => {
+    expect(parseStoredState(null)).toEqual({ tasks: [], lastResetDate: TODAY })
+    expect(parseStoredState('{not json')).toEqual({
+      tasks: [],
+      lastResetDate: TODAY,
+    })
+  })
+
+  it('sanitizes what another tab stored', () => {
+    const raw = JSON.stringify({
+      lastResetDate: TODAY,
+      tasks: [{ id: 'a', title: '  Read  ', target: 3, progress: 9 }],
+    })
+
+    expect(parseStoredState(raw).tasks[0]).toMatchObject({
+      title: 'Read',
+      progress: 3,
     })
   })
 })

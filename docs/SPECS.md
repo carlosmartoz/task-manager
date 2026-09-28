@@ -200,6 +200,9 @@ background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
   the rest. A broken `localStorage` cannot take the app down.
 - **Fault-tolerant writes.** If `localStorage` is full or disabled, the session carries on
   in memory instead of breaking.
+- **Several tabs.** Each tab listens to the `storage` event and adopts what another tab
+  saved, sanitized like any other read. Otherwise a stale tab would overwrite the fresh
+  state on its next save, even one as silent as the daily reset.
 - **Streak data from older versions.** `history`, `skipHistory` and a task's `skipped`
   are dropped on load and on import; nothing reads them any more.
 - **Missing `repeats`.** Anything stored before one-off tasks existed was a habit, so a

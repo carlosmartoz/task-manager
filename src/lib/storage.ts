@@ -86,13 +86,22 @@ export function sanitizeState(value: unknown): TasksState {
   }
 }
 
+// What was stored under the key, as a valid state. Never throws.
+export function parseStoredState(raw: string | null): TasksState {
+  if (!raw) return emptyState()
+
+  try {
+    return sanitizeState(JSON.parse(raw))
+  } catch {
+    return emptyState()
+  }
+}
+
 export function loadState(): TasksState {
   try {
-    const raw =
-      localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY)
-    if (!raw) return emptyState()
-
-    return sanitizeState(JSON.parse(raw))
+    return parseStoredState(
+      localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY),
+    )
   } catch {
     return emptyState()
   }
