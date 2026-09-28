@@ -41,8 +41,11 @@ export function TaskProgress({ task, onAdvance }: TaskProgressProps) {
           style={{ width: `${progressPercent(task)}%` }}
         />
       )}
-      <span className="relative">
+      <span aria-hidden="true" className="relative">
         {task.progress}/{task.target}
+      </span>
+      <span className="sr-only">
+        {task.progress} of {task.target}
       </span>
     </span>
   )

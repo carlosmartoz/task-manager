@@ -1,4 +1,4 @@
-import { useRef, type FormEvent } from 'react'
+import { useRef, type FormEvent, type KeyboardEvent } from 'react'
 
 import { WeekdayPicker } from '@/components/tasks/WeekdayPicker'
 import { Button } from '@/components/ui/button'
@@ -38,8 +38,16 @@ export function TaskForm({ editing, onAdd, onSave, onCancel }: TaskFormProps) {
     inputRef.current?.focus()
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key === 'Escape' && editing) onCancel()
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      onKeyDown={handleKeyDown}
+      className="space-y-4"
+    >
       <div>
         <span className="stat-label">Task</span>
         <div className="mt-1">

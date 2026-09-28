@@ -1,5 +1,7 @@
 import type { KeyboardEvent } from 'react'
 import {
+  IconChevronDown,
+  IconChevronUp,
   IconGripVertical,
   IconMinus,
   IconPencil,
@@ -25,7 +27,8 @@ type TaskActionsProps = {
   onMoveDown?: () => void
 }
 
-// The row's buttons; on a wide screen they only show on hover or focus.
+// The row's buttons; on a wide screen they only show on hover or focus. Touch
+// fires no native drag, so on a phone arrows take the place of the grip.
 export function TaskActions({
   task,
   dimmed,
@@ -37,6 +40,7 @@ export function TaskActions({
   onMoveDown,
 }: TaskActionsProps) {
   const hasCounter = !dimmed && task.target > 1
+  const count = `${task.title}: ${task.progress} of ${task.target}`
 
   // Reordering without a mouse: the grip moves the task with the arrow keys.
   function handleGripKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -59,7 +63,7 @@ export function TaskActions({
             variant="ghost"
             onClick={() => onDecrement(task.id)}
             disabled={task.progress === 0}
-            aria-label={`Subtract one from "${task.title}"`}
+            aria-label={`${count}. Subtract one`}
           >
             <IconMinus />
           </Button>
@@ -68,7 +72,7 @@ export function TaskActions({
             variant="ghost"
             onClick={() => onAdvance(task.id)}
             disabled={isTaskDone(task)}
-            aria-label={`Add one to "${task.title}"`}
+            aria-label={`${count}. Add one`}
           >
             <IconPlus />
           </Button>
@@ -90,6 +94,28 @@ export function TaskActions({
       >
         <IconTrash />
       </Button>
+      {(onMoveUp || onMoveDown) && (
+        <div className="flex flex-col sm:hidden">
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            onClick={onMoveUp}
+            disabled={!onMoveUp}
+            aria-label={`Move "${task.title}" up`}
+          >
+            <IconChevronUp />
+          </Button>
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            onClick={onMoveDown}
+            disabled={!onMoveDown}
+            aria-label={`Move "${task.title}" down`}
+          >
+            <IconChevronDown />
+          </Button>
+        </div>
+      )}
       <Button
         size="icon-sm"
         variant="ghost"

@@ -257,8 +257,8 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
   `swapTasks(id, otherId)`, so the domain does not know drag exists.
 - The grip is a real button, and with it focused **ArrowUp / ArrowDown move the task**:
   native dragging leaves out the keyboard, so the buttons live on inside the handle.
-- **Known limitation:** HTML5 dragging does not fire on touch, so on a phone the order can
-  only be changed with a keyboard.
+- HTML5 dragging does not fire on touch, so below the `sm` breakpoint the grip gives way
+  to ↑ / ↓ buttons that call the same `swapTasks`.
 
 ### 5.3.1 Creating and editing
 
