@@ -1,19 +1,11 @@
 # Specs — Task Manager
 
-> The project's reference document: what we build, what we don't, and how we write the
-> code. The day-to-day working summary is in [CLAUDE.md](../CLAUDE.md).
-
----
-
 ## 1. Goal
 
-A **daily habits** app for a single person.
+A **daily habits** app.
 
 Unlike a classic to-do list, here tasks **are not deleted when completed**: they stand for
 routines. When the day changes they go back to pending and the list is reused.
-
-**Today is all that matters.** There are no streaks, chains or records of past days: the
-app is there to help, not to make anyone feel they owe it a run of perfect days.
 
 **Principles that settle any decision:**
 
@@ -24,25 +16,6 @@ app is there to help, not to make anyone feel they owe it a run of perfect days.
 4. **Accessible by default.** Keyboard and screen reader are requirements, not extras.
 5. **Nothing is lost by accident.** Every deletion can be undone and the whole state can
    be exported.
-
-### Scope
-
-| In | Out |
-|---|---|
-| Task CRUD | Authentication / accounts |
-| Repetition targets (`target`) | Backend, API, sync |
-| Weekdays per task | Multiple lists or projects |
-| Manual list order | Tags, priorities, subtasks |
-| Automatic daily reset | Notifications, reminders |
-|  | Streaks, or any record of past days |
-|  | Statistics or progress charts |
-| Undo deletion and import | Attachments, long notes |
-| JSON export / import | Collaboration |
-|  | Light theme or a theme switch |
-|  | Installable or offline (PWA) |
-
-What is "out" is not forbidden forever, but adding it takes a conversation first: each of
-those features breaks one of the five principles.
 
 ### Technical constraints that follow
 
@@ -59,29 +32,29 @@ those features breaks one of the five principles.
 ## 2. Domain model
 
 ```ts
-type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6  // 0 = Sunday, same as Date.getDay()
-type DayKey = string                       // 'YYYY-MM-DD' in local time, days start at 5 a.m.
+type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, same as Date.getDay()
+type DayKey = string; // 'YYYY-MM-DD' in local time, days start at 5 a.m.
 
 type Task = {
-  id: string
-  title: string
-  repeats: boolean    // a daily habit; false = a one-off, done once and gone
-  target: number      // 1..99 repetitions needed. 1 = a plain task
-  progress: number    // 0..target repetitions logged today
-  weekdays: Weekday[] // empty = every day
-  createdAt: number
-}
+  id: string;
+  title: string;
+  target: number; // 1..99 repetitions needed. 1 = a plain task
+  repeats: boolean; // a daily habit; false = a one-off, done once and gone
+  progress: number; // 0..target repetitions logged today
+  createdAt: number;
+  weekdays: Weekday[]; // empty = every day
+};
 
 type TasksState = {
-  tasks: Task[]                      // array order is display order
-  lastResetDate: DayKey
-}
+  tasks: Task[]; // array order is display order
+  lastResetDate: DayKey;
+};
 ```
 
 ### `done` is derived, not stored
 
 ```ts
-const isTaskDone = (task: Task) => task.progress >= task.target
+const isTaskDone = (task: Task) => task.progress >= task.target;
 ```
 
 This is the central decision of the model. Storing `done` **and** `progress` as separate
@@ -97,11 +70,11 @@ degenerate case of the counter.
 `repeats` says whether the task comes back. It is not a second kind of task in the sense
 above — progress works the same either way — it only says how long the task lives:
 
-| | `repeats: true` (default) | `repeats: false` |
-|---|---|---|
-| Schedule | `weekdays`, empty = every day | always due, until it is done |
-| Counter | `target` 1..99 | always 1 |
-| Day change | progress back to zero | if it was met, the task is gone |
+|            | `repeats: true` (default)     | `repeats: false`                |
+| ---------- | ----------------------------- | ------------------------------- |
+| Schedule   | `weekdays`, empty = every day | always due, until it is done    |
+| Counter    | `target` 1..99                | always 1                        |
+| Day change | progress back to zero         | if it was met, the task is gone |
 
 A one-off carries neither `weekdays` nor a `target` above 1: `scheduleOf` strips both when
 `repeats` is false, both on creation and on edit, so no unreachable state is stored.
@@ -142,20 +115,20 @@ and signal intent through callbacks. No component reads or writes `localStorage`
 
 ### Responsibilities
 
-| Module | Responsibility | Must not |
-|---|---|---|
-| [`lib/config.ts`](../src/lib/config.ts) | Domain constants and storage keys | Hold logic |
-| [`lib/date.ts`](../src/lib/date.ts) | Day keys and date formatting | Know anything about tasks |
-| [`lib/weekdays.ts`](../src/lib/weekdays.ts) | Labels, selection and weekly scheduling | Touch progress |
-| [`lib/tasks.ts`](../src/lib/tasks.ts) | **Pure** domain logic: create, edit, progress, reset, order | Touch `localStorage` or React |
-| [`lib/storage.ts`](../src/lib/storage.ts) | Serialize, validate, migrate, back up | Hold business rules |
-| [`lib/download.ts`](../src/lib/download.ts) | Hand a piece of text over as a file | Know what is being downloaded |
-| [`hooks/useTasks.ts`](../src/hooks/useTasks.ts) | State, invariants, persistence, undo | Hold JSX or style classes |
-| [`hooks/useTaskForm.ts`](../src/hooks/useTaskForm.ts) | Fields shared by create and edit | Persist anything |
-| [`hooks/useBackup.ts`](../src/hooks/useBackup.ts) | Export, import and the visible error | Touch the input's DOM |
-| [`components/tasks/`](../src/components/tasks/) · [`shell/`](../src/components/shell/) | Presentation and interaction | Hold domain state |
-| [`components/ui/`](../src/components/ui/) | shadcn primitives | Know the domain (`Task`) |
-| [`types/`](../src/types/) | One domain type per file, with a barrel | Props types for a single component |
+| Module                                                                                 | Responsibility                                              | Must not                           |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| [`lib/config.ts`](../src/lib/config.ts)                                                | Domain constants and storage keys                           | Hold logic                         |
+| [`lib/date.ts`](../src/lib/date.ts)                                                    | Day keys and date formatting                                | Know anything about tasks          |
+| [`lib/weekdays.ts`](../src/lib/weekdays.ts)                                            | Labels, selection and weekly scheduling                     | Touch progress                     |
+| [`lib/tasks.ts`](../src/lib/tasks.ts)                                                  | **Pure** domain logic: create, edit, progress, reset, order | Touch `localStorage` or React      |
+| [`lib/storage.ts`](../src/lib/storage.ts)                                              | Serialize, validate, migrate, back up                       | Hold business rules                |
+| [`lib/download.ts`](../src/lib/download.ts)                                            | Hand a piece of text over as a file                         | Know what is being downloaded      |
+| [`hooks/useTasks.ts`](../src/hooks/useTasks.ts)                                        | State, invariants, persistence, undo                        | Hold JSX or style classes          |
+| [`hooks/useTaskForm.ts`](../src/hooks/useTaskForm.ts)                                  | Fields shared by create and edit                            | Persist anything                   |
+| [`hooks/useBackup.ts`](../src/hooks/useBackup.ts)                                      | Export, import and the visible error                        | Touch the input's DOM              |
+| [`components/tasks/`](../src/components/tasks/) · [`shell/`](../src/components/shell/) | Presentation and interaction                                | Hold domain state                  |
+| [`components/ui/`](../src/components/ui/)                                              | shadcn primitives                                           | Know the domain (`Task`)           |
+| [`types/`](../src/types/)                                                              | One domain type per file, with a barrel                     | Props types for a single component |
 
 **The rule that pays off most: anything that can be written as a pure function goes to
 `lib/`.** It is what makes the daily reset and the progress clamp testable
@@ -168,8 +141,8 @@ Props types are declared **next to the component that uses them**, not in `types
 
 A component may keep its own `useState` for **ephemeral UI state**: whether it is in edit
 mode, whether the options panel or the other-days section are expanded. That state dies
-with the component and is never persisted. Form fields are no longer component state:
-they live in `useTaskForm`, shared by create and edit.
+with the component and is never persisted. Form fields live in `useTaskForm`, shared by
+create and edit.
 
 ### Daily reset
 
@@ -203,12 +176,11 @@ background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
 - **Several tabs.** Each tab listens to the `storage` event and adopts what another tab
   saved, sanitized like any other read. Otherwise a stale tab would overwrite the fresh
   state on its next save, even one as silent as the daily reset.
-- **Streak data from older versions.** `history`, `skipHistory` and a task's `skipped`
-  are dropped on load and on import; nothing reads them any more.
-- **Missing `repeats`.** Anything stored before one-off tasks existed was a habit, so a
-  missing or non-boolean `repeats` sanitizes to `true`.
-- **v1 → v2 migration.** The v1 format stored `done: boolean` and had no targets, days or
-  history. `sanitizeState` recognises it and converts it (`target: 1`,
+- **Only known fields are kept.** Anything outside `TasksState` and `Task` is dropped on
+  load and on import.
+- **Missing `repeats`.** A missing or non-boolean `repeats` sanitizes to `true`.
+- **v1 → v2 migration.** The v1 format stored `done: boolean` and had no targets or days.
+  `sanitizeState` recognises it and converts it (`target: 1`,
   `progress: done ? 1 : 0`, `weekdays: []`). The migration lives in the sanitizing itself,
   so it serves loading and importing an old backup alike.
 - **Versioning.** If the shape of `TasksState` changes incompatibly, bump the key suffix
@@ -223,18 +195,16 @@ background: on mount, every 30 seconds, and on `focus` / `visibilitychange`.
 
 A task can demand several repetitions a day: "drink 8 glasses of water".
 
-- It is set **when creating the task**, in the *Repetitions per day* field, and can be
+- It is set **when creating the task**, in the _Repetitions per day_ field, and can be
   changed when editing it. The title is never parsed: it is an explicit field.
 - **One action for both cases.** `advanceProgress` adds one repetition. With `target: 1`
   the next advance unticks it, exactly like a checkbox. A met counter (`target > 1`)
-  **stays met**: it used to wrap to zero, and one stray click on the title threw away a
-  whole day of repetitions that took eight clicks to get back. `canAdvance` says which
-  case applies, and the title and the `+` button follow it.
+  **stays met**, so one stray click on the title cannot throw away a day of repetitions.
+  `canAdvance` says which case applies, and the title and the `+` button follow it.
 - A `−` button lets someone correct one advance too many, and is the only way down from a
   met counter; it only shows with `target > 1`.
 - **UI:** with `target: 1`, a checkbox. With `target > 1`, a `3/8` pill that fills
-  proportionally. The "8 little dots" idea was dropped because it does not scale to
-  `target: 30`.
+  proportionally, which scales to any target up to 99.
 
 ### 5.2 Weekdays
 
@@ -264,10 +234,8 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 
 ### 5.3.1 Creating and editing
 
-- **One form for both**, `TaskForm`, in the card on the left: it says *New task* or *Edit
-  task*, and editing is started with the pencil of the row, which highlights it. Editing
-  in the row itself was dropped: the row had to hold a second copy of the form and got
-  cramped as the options grew.
+- **One form for both**, `TaskForm`, in the card on the left: it says _New task_ or _Edit
+  task_, and editing is started with the pencil of the row, which highlights it.
 - The form is remounted per task (`key`), so a half-written draft never leaks from one
   task to the next.
 - **A new task does not repeat by default.** The repeat options stay on screen while the
@@ -275,7 +243,7 @@ Each task can be limited to certain days: "gym on Monday, Wednesday and Friday".
 
 ### 5.4 Undo deletion and import
 
-- Deleting asks for no confirmation, but for **6 seconds** a notice appears with *Undo*,
+- Deleting asks for no confirmation, but for **6 seconds** a notice appears with _Undo_,
   which puts the task back **in its original position**, not at the end.
 - It beats a confirmation dialog: it does not interrupt the normal case (really deleting)
   and it protects the rare one (deleting by mistake).
@@ -316,20 +284,20 @@ UI copy, comments, documentation and commit messages.
 
 ### Naming
 
-| Element | Convention | Example |
-|---|---|---|
-| Own component | `PascalCase.tsx` | `TaskItem.tsx` |
-| shadcn component | `kebab-case.tsx` in `ui/` | `button.tsx` |
-| Hook | `useSomething.ts`, named export | `useTasks.ts` |
-| Utility | `camelCase.ts` in `lib/` | `date.ts` |
-| Test | in `tests/`, same path as the source | `tests/lib/tasks.test.ts` |
-| Type | `PascalCase.ts`, one per file in `types/` | `Task.ts`, `TasksState.ts` |
-| Props | `type <Component>Props` | `TaskItemProps` |
-| Callback prop | `on<Event>` | `onAdd`, `onAdvance` |
-| DOM event handler | `handle<Event>` | `handleSubmit`, `handleKeyDown` |
-| Domain action | imperative verb | `save`, `cancel`, `startEditing` |
-| Boolean | `is` / `has` prefix or a participle | `isEditing`, `done`, `dimmed` |
-| Module constant | `SCREAMING_SNAKE_CASE` | `STORAGE_KEY`, `DAY_START_HOUR` |
+| Element           | Convention                                | Example                          |
+| ----------------- | ----------------------------------------- | -------------------------------- |
+| Own component     | `PascalCase.tsx`                          | `TaskItem.tsx`                   |
+| shadcn component  | `kebab-case.tsx` in `ui/`                 | `button.tsx`                     |
+| Hook              | `useSomething.ts`, named export           | `useTasks.ts`                    |
+| Utility           | `camelCase.ts` in `lib/`                  | `date.ts`                        |
+| Test              | in `tests/`, same path as the source      | `tests/lib/tasks.test.ts`        |
+| Type              | `PascalCase.ts`, one per file in `types/` | `Task.ts`, `TasksState.ts`       |
+| Props             | `type <Component>Props`                   | `TaskItemProps`                  |
+| Callback prop     | `on<Event>`                               | `onAdd`, `onAdvance`             |
+| DOM event handler | `handle<Event>`                           | `handleSubmit`, `handleKeyDown`  |
+| Domain action     | imperative verb                           | `save`, `cancel`, `startEditing` |
+| Boolean           | `is` / `has` prefix or a participle       | `isEditing`, `done`, `dimmed`    |
+| Module constant   | `SCREAMING_SNAKE_CASE`                    | `STORAGE_KEY`, `DAY_START_HOUR`  |
 
 Details worth the judgement:
 
@@ -402,17 +370,17 @@ comment that needs a paragraph is covering for code that should be simplified.
 **What is tested and what is not.** The goal is not coverage, it is armouring the logic
 that is not obvious on reading:
 
-| Covered | Why |
-|---|---|
-| `advanceProgress`, `normalizeTarget` | The counter and the clamp are the heart of the model |
-| `createTask`, `patchTask` | Where a one-off loses its schedule and progress is clamped |
-| `currentDay` | The day starting at 5 a.m. instead of midnight |
-| `applyDailyReset` | Resets and drops met one-offs; hard to test by hand |
-| `restoreTask` | Undoing a deletion across a day change |
-| `sanitizeState` | v1 → v2 migration and defence against corrupt data |
-| `parseBackup` | External input: the least trustworthy surface there is |
-| `toggleWeekday` | Empty and all seven days mean the same; the normalization is subtle |
-| `useTasks` | That the invariants hold when actions are chained, undo, and the sync between tabs |
+| Covered                              | Why                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------- |
+| `advanceProgress`, `normalizeTarget` | The counter and the clamp are the heart of the model                               |
+| `createTask`, `patchTask`            | Where a one-off loses its schedule and progress is clamped                         |
+| `currentDay`                         | The day starting at 5 a.m. instead of midnight                                     |
+| `applyDailyReset`                    | Resets and drops met one-offs; hard to test by hand                                |
+| `restoreTask`                        | Undoing a deletion across a day change                                             |
+| `sanitizeState`                      | v1 → v2 migration and defence against corrupt data                                 |
+| `parseBackup`                        | External input: the least trustworthy surface there is                             |
+| `toggleWeekday`                      | Empty and all seven days mean the same; the normalization is subtle                |
+| `useTasks`                           | That the invariants hold when actions are chained, undo, and the sync between tabs |
 
 Presentation components are not tested: their value is in how they look, and a render test
 would only repeat the JSX.
@@ -428,12 +396,14 @@ Tests live in **`tests/`, mirroring the path of the file they cover**
 Review checklist before calling a change closed:
 
 **Design**
+
 - [ ] Can the new logic be written as a pure function in `lib/`? Then that is where it goes.
 - [ ] Is the domain state in `useTasks` and not leaking into a component?
 - [ ] Does the component do one thing? Past roughly 150 lines, probably not.
 - [ ] Can it be solved with less code or less abstraction?
 
 **Correctness**
+
 - [ ] Are state updates immutable and using the functional form?
 - [ ] Are the functions a hook exposes wrapped in `useCallback`?
 - [ ] Do the `useEffect`s clean up their listeners, intervals and timers?
@@ -442,11 +412,13 @@ Review checklist before calling a change closed:
 - [ ] Does the change respect the invariants in section 2? Is there a test proving it?
 
 **Robustness**
+
 - [ ] What happens with a corrupt, full or disabled `localStorage`?
 - [ ] Is there a designed empty state, not a blank screen?
 - [ ] Does long or unbroken text wrap without breaking the layout?
 
 **Hygiene**
+
 - [ ] `npm run check` passes.
 - [ ] No `console.log`, commented-out code or unused imports.
 - [ ] No `any` and no `@ts-ignore`.
@@ -454,18 +426,18 @@ Review checklist before calling a change closed:
 
 ### Concrete antipatterns
 
-| Avoid | Do |
-|---|---|
-| Storing a value that can be derived | `isTaskDone(task)` instead of a `done` field |
-| `useEffect` to derive values | Compute during render |
-| Actions that take array indices | Take them by `id`, which is stable |
-| Passing the whole `Task` object to a callback | Pass the `id` |
-| `index` as `key` | `task.id` |
-| Mutating with `state.tasks.push(...)` | `[...prev.tasks, task]` |
-| Domain logic inside a component | A pure function in `lib/tasks.ts` |
-| A `ui/` component importing `Task` | Keep `ui/` agnostic of the domain |
-| A `useTaskFilters`, `useTaskSort`… hook per feature | A single `useTasks` while it fits |
-| `alert()` for errors | Text with `role="alert"` next to the action |
+| Avoid                                               | Do                                           |
+| --------------------------------------------------- | -------------------------------------------- |
+| Storing a value that can be derived                 | `isTaskDone(task)` instead of a `done` field |
+| `useEffect` to derive values                        | Compute during render                        |
+| Actions that take array indices                     | Take them by `id`, which is stable           |
+| Passing the whole `Task` object to a callback       | Pass the `id`                                |
+| `index` as `key`                                    | `task.id`                                    |
+| Mutating with `state.tasks.push(...)`               | `[...prev.tasks, task]`                      |
+| Domain logic inside a component                     | A pure function in `lib/tasks.ts`            |
+| A `ui/` component importing `Task`                  | Keep `ui/` agnostic of the domain            |
+| A `useTaskFilters`, `useTaskSort`… hook per feature | A single `useTasks` while it fits            |
+| `alert()` for errors                                | Text with `role="alert"` next to the action  |
 
 ---
 
@@ -480,15 +452,10 @@ Review checklist before calling a change closed:
 
 ---
 
-## 11. Current state and pending work
+## 11. Pending work
 
-**Implemented**: everything described in section 5, plus the CRUD, the daily reset, the
-empty state and local persistence.
-
-**Pending**:
-
-| Task | Note |
-|---|---|
+| Task     | Note                                                                               |
+| -------- | ---------------------------------------------------------------------------------- |
 | Prettier | It would formalize the style in section 6; `src/components/ui/` has to be excluded |
 
 The oxlint warning in [`button.tsx`](../src/components/ui/button.tsx)

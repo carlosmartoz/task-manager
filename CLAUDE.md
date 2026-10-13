@@ -62,7 +62,7 @@ goes through it, never a bare `new Date()`.
 ## Hard rules
 
 - **No streaks, chains or history of past days.** The app shows today and nothing else:
-  it must not push anyone to keep a run going. Removed on purpose; do not bring it back.
+  it must not push anyone to keep a run going.
 - **No new dependencies** without justifying it first. No router, state manager, date
   library, drag & drop library or backend: the project is deliberately minimal. Reordering
   is drag & drop written by hand on the native HTML5 API, in `TaskList`.
